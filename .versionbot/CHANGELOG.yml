@@ -1,4 +1,19 @@
 - commits:
+    - subject: "device: Add `services` command for seeing info about services running
+        on a device"
+      hash: 6f5920cb632b5af58291784537739cb89d523cf6
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Matthew Yarmolinsky <matthew-timothy@balena.io>
+        signed-off-by: Matthew Yarmolinsky <matthew-timothy@balena.io>
+      author: Matthew Yarmolinsky
+      nested: []
+  version: 14.6.0
+  title: ""
+  date: 2022-12-21T00:33:59.306Z
+- commits:
     - subject: "patch: update balena-preload to 12.2.0"
       hash: ca637b3fb669cd8997ceb70201d4cabe0c621ecf
       body: ""
