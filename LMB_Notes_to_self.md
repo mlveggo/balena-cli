@@ -6,18 +6,18 @@
 
 ### Build
 
-* [ ] `balena build -f legacy/intel-nuc`: tag the image with the architecture so
+* [X] `balena build -f legacy/intel-nuc`: tag the image with the architecture so
   it can be discovered by deploy.
-* [ ] `balena build -f legacy/raspberry-pi -e`: tag the image with the
+* [X] `balena build -f legacy/raspberry-pi -e`: tag the image with the
+  architecture so it can be discovered by deploy.
+* [X] `balena build -A amd64 -d intel-nuc`: tag the image with the architecture
+  so it can be discovered by deploy.
+* [X] `balena build -A armv7hf -d raspberry-pi -e`: tag the image with the
   architecture so it can be discovered by deploy.
 * [ ] `balena build -f multiarch/amd64-and-armv7hf`: Error: "Local builds are
   currently limited to one image at a time. Provide a single architecture (-A)
   and repeat for each desired image."; in the future we could automatically
-  queue up multiple builds in series (not MVP)
-* [ ] `balena build -A amd64 -d intel-nuc`: tag the image with the architecture
-  so it can be discovered by deploy
-* [ ] `balena build -A armv7hf -d raspberry-pi -e`: tag the image with the
-  architecture so it can be discovered by deploy
+  queue up multiple builds in series (not MVP).
 * [ ] `balena build -A amd64`: use the provided architecture to build a single
   image; reject device-specific template files or project resolutions; tag the
   image with the architecture so it can be discovered by deploy.
@@ -28,7 +28,7 @@
 * [ ] `balena build -A amd64 -A armv7hf`: Error: "Local builds are currently
   limited to one image at a time. Provide a single architecture (-A) and repeat
   for each desired image."; in the future we could automatically queue up
-  multiple builds in series (not MVP)
+  multiple builds in series (not MVP).
 * [ ] `balena build -A amd64 -A armv7hf -d intel-nuc`: Error: "Local builds are
   currently limited to one image at a time. Provide a single architecture (-A)
   and repeat for each desired image."
