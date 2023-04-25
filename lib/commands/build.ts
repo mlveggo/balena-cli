@@ -30,7 +30,7 @@ import type { ComposeCliFlags, ComposeOpts } from '../utils/compose-types';
 import { buildProject, composeCliFlags } from '../utils/compose_ts';
 import type { BuildOpts, DockerCliFlags } from '../utils/docker';
 import { dockerCliFlags } from '../utils/docker';
-import { tagImagesWithArch } from '../utils/multi-arch';
+import { tagImagesWithArch, isArchTag } from '../utils/multi-arch';
 
 interface FlagsDef extends ComposeCliFlags, DockerCliFlags {
 	arch?: string;
@@ -150,12 +150,13 @@ ${dockerignoreHelp}
 	}
 
 	protected async validateOptions(opts: FlagsDef, sdk: BalenaSDK) {
+		const { ExpectedError } = await import('../errors');
+
 		// Validate option combinations
 		if (
 			(opts.fleet == null && (opts.arch == null || opts.deviceType == null)) ||
 			(opts.fleet != null && (opts.arch != null || opts.deviceType != null))
 		) {
-			const { ExpectedError } = await import('../errors');
 			throw new ExpectedError(
 				'You must specify either a fleet (-f), or the device type (-d) and architecture (-A)',
 			);
@@ -172,6 +173,14 @@ ${dockerignoreHelp}
 				registrySecretsPath: opts['registry-secrets'],
 			},
 		);
+
+		// Don't let the user manually tag the images using an architecture
+		if (isArchTag(opts.tag)) {
+			// TODO: Rephrase message!
+			throw new ExpectedError(
+				'You cannot use a tag name that matches an architecture',
+			);
+		}
 
 		opts.dockerfile = dockerfilePath;
 		opts['registry-secrets'] = registrySecrets;

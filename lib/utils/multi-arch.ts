@@ -32,3 +32,13 @@ export function tagImagesWithArch(
 		}),
 	);
 }
+
+// TODO: We should probably query for this info (for reference, I got these
+// values via `balena devices supported`, so we should be able to them the same
+// way -- whatever way this is).
+export function isArchTag(tag: string | undefined): boolean {
+	return (
+		tag !== undefined &&
+		['aarch64', 'armv7hf', 'amd64', 'i386', 'rpi'].includes(tag)
+	);
+}
