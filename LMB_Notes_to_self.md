@@ -4,6 +4,17 @@
 
 ## TODO
 
+### Assorted things
+
+* How do we handle options that appear multiple times? `-A arch1 -A arch2` or
+  `-A arch1,arch2`?
+* Do we support `Dockerfile.template` for multi-arch fleets? What if they refer
+  to device type?
+* And what about arch-specific Dockerfiles?
+* What about `push` to device?
+* Built-in docs: Look for "You must specify either a fleet, or the device type
+  and architecture" and update it.
+
 ### Build
 
 * [X] `balena build -f legacy/intel-nuc`: tag the image with the architecture so
@@ -14,17 +25,17 @@
   so it can be discovered by deploy.
 * [X] `balena build -A armv7hf -d raspberry-pi -e`: tag the image with the
   architecture so it can be discovered by deploy.
+* [ ] `balena build -A amd64`: use the provided architecture to build a single
+  image; reject device-specific template files or project resolutions; tag the
+  image with the architecture so it can be discovered by deploy.
+* [ ] `balena build -A amd64 -e`: use the provided architecture to build a
+  single image with QEMU; reject device-specific template files or project
+  resolutions; tag the image with the architecture so it can be discovered by
+  deploy.
 * [ ] `balena build -f multiarch/amd64-and-armv7hf`: Error: "Local builds are
   currently limited to one image at a time. Provide a single architecture (-A)
   and repeat for each desired image."; in the future we could automatically
   queue up multiple builds in series (not MVP).
-* [ ] `balena build -A amd64`: use the provided architecture to build a single
-  image; reject device-specific template files or project resolutions; tag the
-  image with the architecture so it can be discovered by deploy.
-* [ ] `balena build -A amd64 -e`. use the provided architecture to build a
-  single image with QEMU; reject device-specific template files or project
-  resolutions; tag the image with the architecture so it can be discovered by
-  deploy.
 * [ ] `balena build -A amd64 -A armv7hf`: Error: "Local builds are currently
   limited to one image at a time. Provide a single architecture (-A) and repeat
   for each desired image."; in the future we could automatically queue up
@@ -72,3 +83,12 @@
   forget the JSON output case (current users may reply on it not being a list,
   for example.)
 * [ ] Implement whatever we define above!
+
+## Required doc updates
+
+* Project resolutions: device-specific stuff is rejected. (Learn/Deploy)
+
+## References
+
+* [Project
+  resolutions](https://docs.balena.io/learn/deploy/deployment/#project-resolutions).

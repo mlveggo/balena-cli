@@ -30,7 +30,11 @@ import type { ComposeCliFlags, ComposeOpts } from '../utils/compose-types';
 import { buildProject, composeCliFlags } from '../utils/compose_ts';
 import type { BuildOpts, DockerCliFlags } from '../utils/docker';
 import { dockerCliFlags } from '../utils/docker';
-import { tagImagesWithArch, isArchTag } from '../utils/multi-arch';
+import {
+	tagImagesWithArch,
+	isArchTag,
+	isFleetMultiArch,
+} from '../utils/multi-arch';
 
 interface FlagsDef extends ComposeCliFlags, DockerCliFlags {
 	arch?: string;
@@ -152,14 +156,34 @@ ${dockerignoreHelp}
 	protected async validateOptions(opts: FlagsDef, sdk: BalenaSDK) {
 		const { ExpectedError } = await import('../errors');
 
+		let multiArchMode = false;
+
 		// Validate option combinations
-		if (
-			(opts.fleet == null && (opts.arch == null || opts.deviceType == null)) ||
-			(opts.fleet != null && (opts.arch != null || opts.deviceType != null))
-		) {
-			throw new ExpectedError(
-				'You must specify either a fleet (-f), or the device type (-d) and architecture (-A)',
-			);
+		if (opts.fleet != null) {
+			if (opts.arch != null || opts.deviceType != null) {
+				throw new ExpectedError(
+					'You must specify either a fleet (-f), or the device type (-d) and/or architecture (-A)',
+				);
+			} else {
+				multiArchMode = isFleetMultiArch(opts.fleet);
+			}
+		} else {
+			// opts.fleet == null
+			if (opts.arch == null && opts.deviceType == null) {
+				throw new ExpectedError(
+					'You must specify either a fleet (-f), or the device type (-d) and/or architecture (-A)',
+				);
+			} else if (opts.arch != null && opts.deviceType != null) {
+				multiArchMode = isFleetMultiArch(opts.fleet);
+			} else {
+				// no fleet, one of arch or deviceType set.
+				if (!isFleetMultiArch(opts.fleet)) {
+					throw new ExpectedError(
+						'You must use a multi-architecture fleet when specifying only a device type (-d) or architecture (-A)',
+					);
+				}
+				multiArchMode = true;
+			}
 		}
 
 		// Validate project directory
@@ -171,10 +195,12 @@ ${dockerignoreHelp}
 				noParentCheck: opts['noparent-check'] || false,
 				projectPath: opts.source || '.',
 				registrySecretsPath: opts['registry-secrets'],
+				multiArchMode,
 			},
 		);
 
 		// Don't let the user manually tag the images using an architecture
+		// TODO: Maybe only if in multi-arch mode, to avoid breaking unusual workflows users may currently have?
 		if (isArchTag(opts.tag)) {
 			// TODO: Rephrase message!
 			throw new ExpectedError(

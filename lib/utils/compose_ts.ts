@@ -1154,6 +1154,7 @@ export async function validateProjectDirectory(
 		noParentCheck: boolean;
 		projectPath: string;
 		registrySecretsPath?: string;
+		multiArchMode: boolean;
 	},
 ): Promise<ProjectValidationResult> {
 	if (
@@ -1177,15 +1178,38 @@ export async function validateProjectDirectory(
 		);
 	} else {
 		const files = await fs.readdir(opts.projectPath);
-		const projectMatch = (file: string) =>
-			/^(Dockerfile|Dockerfile\.\S+|docker-compose.ya?ml|package.json)$/.test(
-				file,
-			);
-		if (!_.some(files, projectMatch)) {
-			throw new ExpectedError(stripIndent`
-				Error: no "Dockerfile[.*]", "docker-compose.yml" or "package.json" file
-				found in source folder "${opts.projectPath}"
-			`);
+		if (opts.multiArchMode) {
+			const multiArchProjectMatch = (file: string) =>
+				/^(Dockerfile|docker-compose.ya?ml|package.json)$/.test(file);
+
+			const badMultiArchProjectMatch = (file: string) =>
+				/^(Dockerfile\.\S+)$/.test(file);
+
+			if (!_.some(files, multiArchProjectMatch)) {
+				throw new ExpectedError(stripIndent`
+					Error: no "Dockerfile", "docker-compose.yml" or "package.json" file
+					found in source folder "${opts.projectPath}"
+				`);
+			}
+
+			// TODO: Show the actual name of the offending file! (Use _.filter() or something)
+			if (_.some(files, badMultiArchProjectMatch)) {
+				throw new ExpectedError(stripIndent`
+					Error: found a "Dockerfile.*" file in source folder "${opts.projectPath},
+					which is not allowed for multi-architecture fleets"
+				`);
+			}
+		} else {
+			const projectMatch = (file: string) =>
+				/^(Dockerfile|Dockerfile\.\S+|docker-compose.ya?ml|package.json)$/.test(
+					file,
+				);
+			if (!_.some(files, projectMatch)) {
+				throw new ExpectedError(stripIndent`
+					Error: no "Dockerfile[.*]", "docker-compose.yml" or "package.json" file
+					found in source folder "${opts.projectPath}"
+				`);
+			}
 		}
 		if (!opts.noParentCheck) {
 			const checkCompose = async (folder: string) => {

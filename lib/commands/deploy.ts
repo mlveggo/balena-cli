@@ -44,6 +44,7 @@ import {
 } from '../utils/compose_ts';
 import { dockerCliFlags } from '../utils/docker';
 import type { ApplicationType, DeviceType, Release } from 'balena-sdk';
+import { isFleetMultiArch } from '../utils/multi-arch';
 
 interface ApplicationWithArch {
 	id: number;
@@ -201,6 +202,7 @@ ${dockerignoreHelp}
 					noParentCheck: options['noparent-check'] || false,
 					projectPath: options.source || '.',
 					registrySecretsPath: options['registry-secrets'],
+					multiArchMode: isFleetMultiArch(params.fleet),
 				});
 			options.dockerfile = dockerfilePath;
 			options['registry-secrets'] = registrySecrets;

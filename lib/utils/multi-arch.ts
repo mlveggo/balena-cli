@@ -42,3 +42,8 @@ export function isArchTag(tag?: string): boolean {
 		['aarch64', 'armv7hf', 'amd64', 'i386', 'rpi'].includes(tag)
 	);
 }
+
+// TODO: Just a dummy for now, should check with the API.
+export function isFleetMultiArch(fleet?: string): boolean {
+	return fleet != null && fleet.endsWith('-ma');
+}

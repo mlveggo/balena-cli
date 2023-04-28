@@ -28,6 +28,7 @@ import {
 	applyReleaseTagKeysAndValues,
 	parseReleaseTagKeysAndValues,
 } from '../utils/compose_ts';
+import { isFleetMultiArch } from '../utils/multi-arch';
 
 enum BuildTarget {
 	Cloud,
@@ -266,6 +267,7 @@ export default class PushCmd extends Command {
 				noParentCheck: options['noparent-check'],
 				projectPath: options.source,
 				registrySecretsPath: options['registry-secrets'],
+				multiArchMode: isFleetMultiArch(params.fleetOrDevice), // TODO: Need to check if is not a fleet, probably.
 			},
 		);
 
