@@ -176,12 +176,7 @@ ${dockerignoreHelp}
 			} else if (opts.arch != null && opts.deviceType != null) {
 				multiArchMode = isFleetMultiArch(opts.fleet);
 			} else {
-				// no fleet, one of arch or deviceType set.
-				if (!isFleetMultiArch(opts.fleet)) {
-					throw new ExpectedError(
-						'You must use a multi-architecture fleet when specifying only a device type (-d) or architecture (-A)',
-					);
-				}
+				// No fleet, and either arch or deviceType set (but not both).
 				multiArchMode = true;
 			}
 		}
