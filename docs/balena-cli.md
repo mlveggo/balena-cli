@@ -2931,7 +2931,14 @@ the provided docker daemon in your development machine or balena device.
 (See also the `balena push` command for the option of building images in the
 balenaCloud build servers.)
 
-You must specify either a fleet, or the device type and architecture.
+You must specify one of these sets of flags:
+
+1. The device type (-d) and architecture (-A). This will build your project in
+   single-architecture mode.
+2. The architecture only (-A). This will build your project assuming it is
+   multi-architecture.
+3. A fleet (-f). This will build either in single- or multi-architecture mode,
+   according to the how your fleet is configured.
 
 This command will look into the given source directory (or the current working
 directory if one isn't specified) for a docker-compose.yml file, and if found,
@@ -2939,6 +2946,9 @@ each service defined in the compose file will be built. If a compose file isn't
 found, it will look for a Dockerfile[.template] file (or alternative Dockerfile
 specified with the `--dockerfile` option), and if no dockerfile is found, it
 will try to generate one.
+
+When building in multi-architecture mode, this command will reject
+device-specific template files or project resolutions.
 
 REGISTRY SECRETS  
 The --registry-secrets option specifies a JSON or YAML file containing private
