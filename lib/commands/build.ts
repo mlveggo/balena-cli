@@ -37,7 +37,7 @@ import {
 } from '../utils/multi-arch';
 
 interface FlagsDef extends ComposeCliFlags, DockerCliFlags {
-	arch?: string;
+	archs?: string[];
 	deviceType?: string;
 	fleet?: string;
 	source?: string; // Not part of command profile - source param copied here.
@@ -102,9 +102,10 @@ ${dockerignoreHelp}
 	public static usage = 'build [source]';
 
 	public static flags: flags.Input<FlagsDef> = {
-		arch: flags.string({
+		archs: flags.string({
 			description: 'the architecture to build for',
 			char: 'A',
+			multiple: true,
 		}),
 		deviceType: flags.string({
 			description: 'the type of device this build is for',
@@ -149,10 +150,15 @@ ${dockerignoreHelp}
 
 		const { docker, buildOpts, composeOpts } = await this.prepareBuild(options);
 
+		// TODO: Temporary for multi-arch development. We'll need to handle multiple
+		//       architectures at some point. Or make this less silly, at least.
+		//       Perhaps even check that opts.arch.length > 0.
+		const theOneArch = options.archs![0];
+
 		try {
 			await this.buildProject(docker, logger, composeOpts, {
 				app,
-				arch: options.arch!,
+				arch: theOneArch,
 				deviceType: options.deviceType!,
 				buildEmulated: options.emulated,
 				buildOpts,
@@ -171,9 +177,16 @@ ${dockerignoreHelp}
 
 		let multiArchMode = false;
 
+		// For now, only one arch can be passed
+		if (opts.archs && opts.archs.length > 0) {
+			throw new ExpectedError(
+				'Local builds are currently limited to one image at a time. Provide a single architecture (-A) and repeat for each desired image.',
+			);
+		}
+
 		// Validate option combinations
 		if (opts.fleet != null) {
-			if (opts.arch != null || opts.deviceType != null) {
+			if (opts.archs != null || opts.deviceType != null) {
 				throw new ExpectedError(
 					'You must specify either a fleet (-f), or the device type (-d) and/or architecture (-A)',
 				);
@@ -182,11 +195,11 @@ ${dockerignoreHelp}
 			}
 		} else {
 			// opts.fleet == null
-			if (opts.arch == null && opts.deviceType == null) {
+			if (opts.archs == null && opts.deviceType == null) {
 				throw new ExpectedError(
 					'You must specify either a fleet (-f), or the device type (-d) and/or architecture (-A)',
 				);
-			} else if (opts.arch != null && opts.deviceType != null) {
+			} else if (opts.archs != null && opts.deviceType != null) {
 				multiArchMode = isFleetMultiArch(opts.fleet);
 			} else {
 				// No fleet, and either arch or deviceType set (but not both).
@@ -224,7 +237,7 @@ ${dockerignoreHelp}
 		if (opts.fleet) {
 			const { getAppWithArch } = await import('../utils/helpers');
 			const app = await getAppWithArch(opts.fleet);
-			opts.arch = app.arch;
+			opts.archs = [app.arch]; // TODO: For multi-arch, I suppose the SDK/API will return multiple architectures or something. For now, pretending it kind of does.
 			opts.deviceType = app.is_for__device_type[0].slug;
 			return app;
 		}
@@ -292,13 +305,18 @@ ${dockerignoreHelp}
 			);
 		}
 
+		// TODO: Temporary for multi-arch development. We'll need to handle multiple
+		//       architectures at some point. Or make this less silly, at least.
+		//       Perhaps even check that opts.arch.length > 0.
+		const theOneArch = opts.arch[0];
+
 		const builtImages = await buildProject({
 			docker,
 			logger,
 			projectPath: project.path,
 			projectName: project.name,
 			composition: project.composition,
-			arch: opts.arch,
+			arch: theOneArch,
 			deviceType: opts.deviceType,
 			emulated: opts.buildEmulated,
 			buildOpts: opts.buildOpts,
@@ -308,6 +326,6 @@ ${dockerignoreHelp}
 			multiDockerignore: composeOpts.multiDockerignore,
 		});
 
-		await tagImagesWithArch(docker, builtImages, opts.arch);
+		await tagImagesWithArch(docker, builtImages, theOneArch);
 	}
 }

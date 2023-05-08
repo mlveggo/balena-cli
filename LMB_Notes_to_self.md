@@ -9,12 +9,17 @@
 
 * How do we handle options that appear multiple times? `-A arch1 -A arch2` or
   `-A arch1,arch2`?
+    * oclif uses `-A this -A that`. But it doesn't error out when we pass
+      multiple ones for flags configured as `multiple: false`.
+    * But the worse is this. These give different results. The first one is
+      parsed in a very broken way (as if the path was an arch, too). Yikes! 🤮
+        * `./bin/balena-dev build -A aarch64 -A x86_64  ~/Projects/balena/lmbarros-test`
+        * `./bin/balena-dev build /home/lmb/Projects/balena/lmbarros-test -A aarch64 -A x86_64`
 * Do we support `Dockerfile.template` for multi-arch fleets? What if they refer
   to device type?
 * And what about arch-specific Dockerfiles?
 * What about `push` to device?
-* Built-in docs: Look for "You must specify either a fleet, or the device type
-  and architecture" and update it.
+* Tests.
 
 ### Build
 
@@ -37,11 +42,11 @@
   currently limited to one image at a time. Provide a single architecture (-A)
   and repeat for each desired image."; in the future we could automatically
   queue up multiple builds in series (not MVP).
-* [ ] `balena build -A amd64 -A armv7hf`: Error: "Local builds are currently
+* [X] `balena build -A amd64 -A armv7hf`: Error: "Local builds are currently
   limited to one image at a time. Provide a single architecture (-A) and repeat
   for each desired image."; in the future we could automatically queue up
   multiple builds in series (not MVP).
-* [ ] `balena build -A amd64 -A armv7hf -d intel-nuc`: Error: "Local builds are
+* [X] `balena build -A amd64 -A armv7hf -d intel-nuc`: Error: "Local builds are
   currently limited to one image at a time. Provide a single architecture (-A)
   and repeat for each desired image."
 
