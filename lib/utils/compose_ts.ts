@@ -1193,6 +1193,9 @@ export async function validateProjectDirectory(
 			}
 
 			// TODO: Show the actual name of the offending file! (Use _.filter() or something)
+			// TODO: A generic Dockerfile.template should be fine.
+			// TODO: Unless it uses `%%BALENA_MACHINE_NAME%%`?
+			// TODO: And I suppose Dockerfile.some_arch should be fine too.
 			if (_.some(files, badMultiArchProjectMatch)) {
 				throw new ExpectedError(stripIndent`
 					Error: found a "Dockerfile.*" file in source folder "${opts.projectPath},

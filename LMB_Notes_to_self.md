@@ -1,6 +1,7 @@
 # LMB's notes to himself (CLI multiarch)
 
 [Fibery Improvement](https://balena.fibery.io/Organisation/Improvements/Update-the-CLI-to-support-multi-arch-releases-MVP-863)
+[Akis' API PR](https://github.com/balena-io/balena-api/pull/4336)
 
 ## TODO
 
