@@ -178,7 +178,7 @@ ${dockerignoreHelp}
 		let multiArchMode = false;
 
 		// For now, only one arch can be passed
-		if (opts.arch && opts.arch.length > 0) {
+		if (opts.arch && opts.arch.length > 1) {
 			throw new ExpectedError(
 				'Local builds are currently limited to one image at a time. Provide a single architecture (-A) and repeat for each desired image.',
 			);
