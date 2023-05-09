@@ -45,6 +45,7 @@ import type { DeviceInfo } from './device/api';
 import { getBalenaSdk, getChalk, stripIndent } from './lazy';
 import Logger = require('./logger');
 import { exists } from './which';
+import { ensureCanBuildProjectAsMultiArch } from '../utils/multi-arch';
 
 const allowedContractTypes = ['sw.application', 'sw.block'];
 
@@ -1177,32 +1178,10 @@ export async function validateProjectDirectory(
 			opts.dockerfilePath,
 		);
 	} else {
-		const files = await fs.readdir(opts.projectPath);
 		if (opts.multiArchMode) {
-			const multiArchProjectMatch = (file: string) =>
-				/^(Dockerfile|docker-compose.ya?ml|package.json)$/.test(file);
-
-			const badMultiArchProjectMatch = (file: string) =>
-				/^(Dockerfile\.\S+)$/.test(file);
-
-			if (!_.some(files, multiArchProjectMatch)) {
-				throw new ExpectedError(stripIndent`
-					Error: no "Dockerfile", "docker-compose.yml" or "package.json" file
-					found in source folder "${opts.projectPath}"
-				`);
-			}
-
-			// TODO: Show the actual name of the offending file! (Use _.filter() or something)
-			// TODO: A generic Dockerfile.template should be fine.
-			// TODO: Unless it uses `%%BALENA_MACHINE_NAME%%`?
-			// TODO: And I suppose Dockerfile.some_arch should be fine too.
-			if (_.some(files, badMultiArchProjectMatch)) {
-				throw new ExpectedError(stripIndent`
-					Error: found a "Dockerfile.*" file in source folder "${opts.projectPath},
-					which is not allowed for multi-architecture fleets"
-				`);
-			}
+			await ensureCanBuildProjectAsMultiArch(opts.projectPath);
 		} else {
+			const files = await fs.readdir(opts.projectPath);
 			const projectMatch = (file: string) =>
 				/^(Dockerfile|Dockerfile\.\S+|docker-compose.ya?ml|package.json)$/.test(
 					file,

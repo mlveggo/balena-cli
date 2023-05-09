@@ -9,15 +9,14 @@
 
 * How do we handle options that appear multiple times? `-A arch1 -A arch2` or
   `-A arch1,arch2`?
-    * oclif uses `-A this -A that`. But it doesn't error out when we pass
-      multiple ones for flags configured as `multiple: false`.
-    * But the worse is this. These give different results. The first one is
-      parsed in a very broken way (as if the path was an arch, too). Yikes! 🤮
+    * oclif uses `-A this -A that`, which has problems. First, it doesn't error
+      out when we pass multiple ones for flags configured as `multiple: false`.
+      (Not a big issue, as I just changed it to `multiple: true`).
+    * But here's the worse. The two invocations below give different results.
+      The first one is parsed in a very broken way (as if the path was an arch,
+      too). Yikes! 🤮
         * `./bin/balena-dev build -A aarch64 -A x86_64  ~/Projects/balena/lmbarros-test`
         * `./bin/balena-dev build /home/lmb/Projects/balena/lmbarros-test -A aarch64 -A x86_64`
-* Do we support `Dockerfile.template` for multi-arch fleets? What if they refer
-  to device type?
-* And what about arch-specific Dockerfiles?
 * What about `push` to device?
 * Tests.
 
@@ -31,10 +30,10 @@
   so it can be discovered by deploy.
 * [X] `balena build -A armv7hf -d raspberry-pi -e`: tag the image with the
   architecture so it can be discovered by deploy.
-* [ ] `balena build -A amd64`: use the provided architecture to build a single
+* [X] `balena build -A amd64`: use the provided architecture to build a single
   image; reject device-specific template files or project resolutions; tag the
   image with the architecture so it can be discovered by deploy.
-* [ ] `balena build -A amd64 -e`: use the provided architecture to build a
+* [X] `balena build -A amd64 -e`: use the provided architecture to build a
   single image with QEMU; reject device-specific template files or project
   resolutions; tag the image with the architecture so it can be discovered by
   deploy.

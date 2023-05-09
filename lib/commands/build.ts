@@ -305,18 +305,13 @@ ${dockerignoreHelp}
 			);
 		}
 
-		// TODO: Temporary for multi-arch development. We'll need to handle multiple
-		//       architectures at some point. Or make this less silly, at least.
-		//       Perhaps even check that opts.arch.length > 0.
-		const theOneArch = opts.arch[0];
-
 		const builtImages = await buildProject({
 			docker,
 			logger,
 			projectPath: project.path,
 			projectName: project.name,
 			composition: project.composition,
-			arch: theOneArch,
+			arch: opts.arch,
 			deviceType: opts.deviceType,
 			emulated: opts.buildEmulated,
 			buildOpts: opts.buildOpts,
@@ -326,6 +321,6 @@ ${dockerignoreHelp}
 			multiDockerignore: composeOpts.multiDockerignore,
 		});
 
-		await tagImagesWithArch(docker, builtImages, theOneArch);
+		await tagImagesWithArch(docker, builtImages, opts.arch);
 	}
 }
