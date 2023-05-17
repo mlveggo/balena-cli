@@ -92,6 +92,7 @@ describe('balena build', function () {
 		api.expectGetMixpanel({ optional: true });
 		docker.expectGetPing();
 		docker.expectGetVersion({ persist: true });
+		docker.expectPostImagesTag();
 	});
 
 	this.afterEach(() => {
