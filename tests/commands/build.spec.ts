@@ -33,6 +33,7 @@ import {
 	getDockerignoreWarn2,
 	getDockerignoreWarn3,
 } from '../projects';
+import { makeImageName } from '../../build/utils/compose_ts';
 
 const repoPath = path.normalize(path.join(__dirname, '..', '..'));
 const projectsPath = path.join(repoPath, 'tests', 'test-data', 'projects');
@@ -643,5 +644,65 @@ describe('balena build: project validation', function () {
 		);
 		expect(cleanOutput(err, true)).to.include.members(expectedErrorLines);
 		expect(out).to.be.empty;
+	});
+});
+
+describe('balena build: multi-arch', function () {
+	// TODO test cases:
+	// - Multi-image
+	let api: BalenaAPIMock;
+	let docker: DockerMock;
+
+	this.beforeEach(() => {
+		api = new BalenaAPIMock();
+		docker = new DockerMock();
+		api.expectGetWhoAmI({ optional: true, persist: true });
+		api.expectGetMixpanel({ optional: true });
+		docker.expectGetPing();
+		docker.expectGetVersion({ persist: true });
+		docker.expectPostImagesTag();
+		docker.expectGetInfo({});
+		docker.expectGetManifestBusybox();
+		docker.expectGetImages({ optional: true });
+	});
+
+	this.afterEach(() => {
+		// Check all expected api calls have been made and clean up.
+		api.done();
+		docker.done();
+	});
+
+	it('should tag with arch (basic Dockerfile)', async () => {
+		docker.expectPostBuild({ tag: 'basic_main' });
+		const projectPath = path.join(projectsPath, 'no-docker-compose', 'basic');
+
+		const expectedResponseLines = [
+			'[Info] Tagged image basic_main with architecture amd64',
+		];
+
+		const { out, err } = await runCommand(
+			`build ${projectPath} -A amd64 -d nuc`,
+		);
+		expect(cleanOutput(out, true)).to.include.members(expectedResponseLines);
+		expect(err).to.be.empty;
+	});
+
+	it('should tag with arch (basic docker-compose)', async () => {
+		docker.expectGetManifestNucAlpine();
+		docker.expectPostBuild({ tag: 'basic_service1' });
+		docker.expectPostBuild({ tag: 'basic_service2' });
+
+		const projectPath = path.join(projectsPath, 'docker-compose', 'basic');
+
+		const expectedResponseLines = [
+			'[Info] Tagged image basic_service1 with architecture amd64',
+			'[Info] Tagged image basic_service2 with architecture amd64',
+		];
+
+		const { out, err } = await runCommand(
+			`build ${projectPath} -A amd64 -d nuc`,
+		);
+		expect(cleanOutput(out, true)).to.include.members(expectedResponseLines);
+		expect(err).to.be.empty;
 	});
 });
