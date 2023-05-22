@@ -322,5 +322,10 @@ ${dockerignoreHelp}
 		});
 
 		await tagImagesWithArch(docker, builtImages, opts.arch);
+		for (const image of builtImages) {
+			logger.logInfo(
+				`Tagged image ${image.name} with architecture ${opts.arch}`,
+			);
+		}
 	}
 }
