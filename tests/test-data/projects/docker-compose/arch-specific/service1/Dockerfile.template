@@ -1,0 +1,2 @@
+FROM balenalib/%%BALENA_ARCH%%-alpine
+RUN echo "Hi from a Dockerfile using an arch variable!" > /file.txt

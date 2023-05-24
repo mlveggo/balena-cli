@@ -1,0 +1,2 @@
+FROM balenalib/alpine
+RUN echo "Hi from an arch-specific Dockerfile!" > /file.txt

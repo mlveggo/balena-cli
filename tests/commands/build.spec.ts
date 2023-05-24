@@ -33,7 +33,6 @@ import {
 	getDockerignoreWarn2,
 	getDockerignoreWarn3,
 } from '../projects';
-import { makeImageName } from '../../build/utils/compose_ts';
 
 const repoPath = path.normalize(path.join(__dirname, '..', '..'));
 const projectsPath = path.join(repoPath, 'tests', 'test-data', 'projects');
@@ -661,7 +660,6 @@ describe('balena build: multi-arch', function () {
 		docker.expectGetPing();
 		docker.expectGetVersion({ persist: true });
 		docker.expectPostImagesTag();
-		docker.expectGetInfo({});
 		docker.expectGetManifestBusybox();
 		docker.expectGetImages({ optional: true });
 	});
@@ -672,35 +670,23 @@ describe('balena build: multi-arch', function () {
 		docker.done();
 	});
 
-	it('should tag with arch (basic Dockerfile)', async () => {
+	it('should tag with arch (legacy fleet)', async () => {
+		api.expectGetApplication({
+			expandArchitecture: true,
+			multiArch: false,
+		});
+		docker.expectGetInfo({});
+
 		docker.expectPostBuild({ tag: 'basic_main' });
 		const projectPath = path.join(projectsPath, 'no-docker-compose', 'basic');
 
+		// Here, armv7hf matches the arch configured in the mocked API call.
 		const expectedResponseLines = [
-			'[Info] Tagged image basic_main with architecture amd64',
+			'[Info] Tagged image basic_main with architecture armv7hf',
 		];
 
 		const { out, err } = await runCommand(
-			`build ${projectPath} -A amd64 -d nuc`,
-		);
-		expect(cleanOutput(out, true)).to.include.members(expectedResponseLines);
-		expect(err).to.be.empty;
-	});
-
-	it('should tag with arch (basic docker-compose)', async () => {
-		docker.expectGetManifestNucAlpine();
-		docker.expectPostBuild({ tag: 'basic_service1' });
-		docker.expectPostBuild({ tag: 'basic_service2' });
-
-		const projectPath = path.join(projectsPath, 'docker-compose', 'basic');
-
-		const expectedResponseLines = [
-			'[Info] Tagged image basic_service1 with architecture amd64',
-			'[Info] Tagged image basic_service2 with architecture amd64',
-		];
-
-		const { out, err } = await runCommand(
-			`build ${projectPath} -A amd64 -d nuc`,
+			`build ${projectPath} -f gh_user/testApp`,
 		);
 		expect(cleanOutput(out, true)).to.include.members(expectedResponseLines);
 		expect(err).to.be.empty;

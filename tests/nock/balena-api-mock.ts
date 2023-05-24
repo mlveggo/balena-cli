@@ -36,6 +36,7 @@ export class BalenaAPIMock extends NockMock {
 		optional = false,
 		persist = false,
 		expandArchitecture = false,
+		multiArch = false,
 	} = {}) {
 		const interceptor = this.optGet(/^\/v6\/application($|[(?])/, {
 			optional,
@@ -50,6 +51,8 @@ export class BalenaAPIMock extends NockMock {
 					apiResponsePath,
 					!expandArchitecture
 						? 'application-GET-v6-expanded-app-type.json'
+						: multiArch
+						? 'application-GET-v6-expanded-app-type-cpu-multi-arch.json'
 						: 'application-GET-v6-expanded-app-type-cpu-arch.json',
 				),
 				jHeader,
