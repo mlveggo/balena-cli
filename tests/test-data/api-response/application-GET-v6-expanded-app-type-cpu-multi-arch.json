@@ -33,18 +33,16 @@
 			],
 			"is_for__device_type": [
 				{
-					"COMMENT": "TODO: Made up multi-arch payload. Must make it match the real API.",
 					"slug": "raspberrypi3",
 					"is_of__cpu_architecture": [
 						{
 							"slug": "armv7hf"
-						},
-						{
-							"slug": "aarch64"
 						}
 					]
 				}
 			],
+			"COMMENT": "TODO: Largely made up multi-arch payload. Must make it match the real future API.",
+			"cpu_architectures": ["armv7hf", "aarch64"],
 			"should_track_latest_release": true,
 			"is_accessible_by_support_until__date": null,
 			"is_public": false,
