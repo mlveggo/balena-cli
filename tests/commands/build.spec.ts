@@ -671,13 +671,17 @@ describe('balena build: multi-arch', function () {
 	});
 
 	it('should tag with arch (legacy fleet)', async () => {
+		// TODO: How to really determine if this is a legacy fleet? For now,
+		//       `multiArch: false` is using something I made up. Need to check
+		//       how the API will handle this and adapt this (and other legacy
+		//       fleet tests) accordingly.
 		api.expectGetApplication({
 			expandArchitecture: true,
 			multiArch: false,
 		});
 		docker.expectGetInfo({});
-
 		docker.expectPostBuild({ tag: 'basic_main' });
+
 		const projectPath = path.join(projectsPath, 'no-docker-compose', 'basic');
 
 		// Here, armv7hf matches the arch configured in the mocked API call.
@@ -691,4 +695,58 @@ describe('balena build: multi-arch', function () {
 		expect(cleanOutput(out, true)).to.include.members(expectedResponseLines);
 		expect(err).to.be.empty;
 	});
+
+	// TODO: Legacy fleet supports Dockerfile.device-type
+	// TODO: Legacy fleet supports Dockerfile.template with %%BALENA_MACHINE_NAME%%
+	// TODO: Maybe a case passing `-e`, but emulation tests are tricky ot make "real"
+
+	it('should tag with arch (arch and device type)', async () => {
+		docker.expectGetInfo({});
+		docker.expectPostBuild({ tag: 'basic_main' });
+
+		const projectPath = path.join(projectsPath, 'no-docker-compose', 'basic');
+
+		// Here, aarch64 matches the arch and device type passed to `build`.
+		const expectedResponseLines = [
+			'[Info] Tagged image basic_main with architecture aarch64',
+		];
+
+		const { out, err } = await runCommand(
+			`build ${projectPath} -A aarch64 -d raspberrypi3-64`,
+		);
+		expect(cleanOutput(out, true)).to.include.members(expectedResponseLines);
+		expect(err).to.be.empty;
+	});
+
+	// TODO: -A -d supports Dockerfile.device-type
+	// TODO: -A -d supports Dockerfile.template with %%BALENA_MACHINE_NAME%%
+	// TODO: Maybe a -A -d case passing `-e`, but emulation tests are tricky ot make "real"
+
+	it('should tag with arch (arch only)', async () => {
+		docker.expectGetInfo({});
+		docker.expectPostBuild({ tag: 'basic_main' });
+
+		const projectPath = path.join(projectsPath, 'no-docker-compose', 'basic');
+
+		// Here, armv7hf matches the arch passed to `build`.
+		const expectedResponseLines = [
+			'[Info] Tagged image basic_main with architecture armv7hf',
+		];
+
+		const { out, err } = await runCommand(
+			`build ${projectPath} -A armv7hf`,
+		);
+		expect(cleanOutput(out, true)).to.include.members(expectedResponseLines);
+		expect(err).to.be.empty;
+	});
+
+	// TODO: -A rejects Dockerfile.device-type
+	// TODO: -A rejects Dockerfile.template with %%BALENA_MACHINE_NAME%%
+	// TODO: Maybe a -A -d case passing `-e`, but emulation tests are tricky ot make "real"
+
+	// TODO: `build -f mult-arch-fleet` must fail ("build manually with -A for every desired arch")
+
+	// TODO: `build -A this -A that` must fail ("build manually with -A for every desired arch")
+
+	// TODO: `build -d foo -A this -A that` must fail ("build manually with -A for every desired arch")
 });

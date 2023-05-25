@@ -19,14 +19,20 @@
         * `./bin/balena-dev build /home/lmb/Projects/balena/lmbarros-test -A aarch64 -A x86_64`
 * What about `push` to device?
 * Tests.
+    * Are emulation tests (`balena build -e`) worth them? I don't think so.
+      Tests run by default mocking a Mac environment, in which using emulation
+      or not is decided by Docker itself, not by the CLI. We'd need to mock a
+      Linux environment to have control on the effects of `-e`. And then we need
+      to mock downloading of balena's QEMU fork. And I think all code that
+      matters for us here isn't really dependent on `-e` being passed or not.
 
 ### Build
 
-* [X] `balena build -f legacy/intel-nuc`: tag the image with the architecture so
+* [✅] `balena build -f legacy/intel-nuc`: tag the image with the architecture so
   it can be discovered by deploy.
 * [X] `balena build -f legacy/raspberry-pi -e`: tag the image with the
   architecture so it can be discovered by deploy.
-* [X] `balena build -A amd64 -d intel-nuc`: tag the image with the architecture
+* [✅] `balena build -A amd64 -d intel-nuc`: tag the image with the architecture
   so it can be discovered by deploy.
 * [X] `balena build -A armv7hf -d raspberry-pi -e`: tag the image with the
   architecture so it can be discovered by deploy.
