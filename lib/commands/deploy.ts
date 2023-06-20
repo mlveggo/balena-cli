@@ -44,7 +44,7 @@ import {
 } from '../utils/compose_ts';
 import { dockerCliFlags } from '../utils/docker';
 import type { ApplicationType, DeviceType, Release } from 'balena-sdk';
-import { isFleetMultiArch } from '../utils/multi-arch';
+import { tagImagesWithArch, isFleetMultiArch } from '../utils/multi-arch';
 
 interface ApplicationWithArch {
 	id: number;
@@ -285,9 +285,11 @@ ${dockerignoreHelp}
 						return '';
 					}
 					try {
-						await docker
-							.getImage((isBuildConfig(d.image) ? d.image.tag : d.image) || '')
-							.inspect();
+						const imageWithArch =
+							(isBuildConfig(d.image) ? d.image.tag : d.image) +
+							':' +
+							opts.app.arch;
+						await docker.getImage(imageWithArch || '').inspect();
 
 						return d.serviceName;
 					} catch {
@@ -328,6 +330,12 @@ ${dockerignoreHelp}
 					multiDockerignore: composeOpts.multiDockerignore,
 				});
 				builtImagesByService = _.keyBy(builtImages, 'serviceName');
+				await tagImagesWithArch(docker, builtImages, opts.app.arch);
+				for (const image of builtImages) {
+					logger.logInfo(
+						`Tagged image ${image.name} with architecture ${opts.app.arch}`,
+					);
+				}
 			}
 			const images: BuiltImage[] = project.descriptors.map(
 				(d) =>

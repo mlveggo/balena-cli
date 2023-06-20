@@ -57,17 +57,17 @@
 
 ### Deploy
 
-* [ ] `balena deploy legacy/intel-nuc`: find a local image with the correct
+* [X] `balena deploy legacy/intel-nuc`: find a local image with the correct
   architecture tag. Corner case: built with old CLI version (no arch tag),
   deploy with new CLI, which expects arch tag.
-* [ ] `balena deploy legacy/intel-nuc —-build`: build a local image with the
+* [X] `balena deploy legacy/intel-nuc --build`: build a local image with the
   correct architecture tag.
 * [ ] `balena deploy multiarch/amd64-and-armv7hf`: infer the device types and
   architectures from the fleet; reject device-specific template files or project
   resolutions; find a local images with the correct architecture tags; enforce
   that images exist for each architecture required by the application; deploy
   the images to the fleet as a single release.
-* [ ] `balena deploy multiarch/amd64-and-armv7hf —-build`: infer the device
+* [ ] `balena deploy multiarch/amd64-and-armv7hf --build`: infer the device
   types and architectures from the fleet; reject device-specific template files
   or project resolutions; build local images with the correct architecture tags
   (MVP+1?); deploy the images to the fleet as a single release
