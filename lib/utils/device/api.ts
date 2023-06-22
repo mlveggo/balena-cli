@@ -32,6 +32,15 @@ export interface DeviceResponse {
 }
 
 export interface DeviceInfo {
+	// When coming from the API, a DeviceInfo will always have a deviceType set,
+	// just as the typing indicates here. However, DeviceInfo is used in several
+	// build-related contexts, including multi-arch builds, where the deviceType
+	// is not available. In these cases, we use an empty string as a
+	// placeholder.
+	//
+	// TODO: Would it be better to make the type `string | undefined`? My
+	// rationale here was keep the type as close as possible to the API, given
+	// that we are in `api.ts`.
 	deviceType: string;
 	arch: string;
 }

@@ -159,7 +159,7 @@ ${dockerignoreHelp}
 			await this.buildProject(docker, logger, composeOpts, {
 				app,
 				arch: theOneArch,
-				deviceType: options.deviceType!,
+				deviceType: options.deviceType || '', // deviceType is undefined in multi-arch fleets.
 				buildEmulated: options.emulated,
 				buildOpts,
 			});
