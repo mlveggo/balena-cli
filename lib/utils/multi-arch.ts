@@ -60,6 +60,14 @@ export function isFleetMultiArch(fleet?: string): boolean {
 	return fleet != null && fleet.endsWith('-ma');
 }
 
+// Ditto.
+export function getFleetArchs(fleet?: string): string[] {
+	if (!isFleetMultiArch(fleet)) {
+		return [];
+	}
+	return fleet!.slice(0, -'-ma'.length).split('-').slice(1);
+}
+
 // Ensures the project at `projectPath` can be built as a multi-arch project (as
 // far as having the proper build files in it). Throws if it isn't.
 // TODO: Name isn't great.
