@@ -71,6 +71,16 @@
   types and architectures from the fleet; reject device-specific template files
   or project resolutions; build local images with the correct architecture tags
   (MVP+1?); deploy the images to the fleet as a single release
+    * This is the same as above, just forcing the build. Shouldn't be
+      special/difficult/different in any way.
+
+* TODO: What about cases in which we pass the image explicitly: `balena deploy
+  my-fleet my-image`?
+    * For a multi-arch fleet, this shouldn't be allowed at all, I think.
+        * Or this refers to the tag-less image name? And as long as the passed
+          image has tags for the required archs that's fine?
+    * For legacy fleets, we'd like to keep backwards compatibility, so one
+      should be allowed to pass the image.
 
 ### Push
 

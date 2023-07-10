@@ -53,7 +53,9 @@ export function isArchTag(tag?: string): boolean {
 	);
 }
 
-// TODO: Just a dummy for now, should check with the API.
+// TODO: Just a dummy for now, should check with the API. This is the convention
+// I am using for now, though. A multi-arch fleet must be called like
+// `name-arch1-arch2-archn-ma`. The `-ma` suffix identifies it as multi-arch.
 export function isFleetMultiArch(fleet?: string): boolean {
 	return fleet != null && fleet.endsWith('-ma');
 }
