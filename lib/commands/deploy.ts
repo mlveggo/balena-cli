@@ -33,6 +33,7 @@ import type {
 	ComposeCliFlags,
 	ComposeOpts,
 	Release as ComposeReleaseInfo,
+	ComposeProject,
 } from '../utils/compose-types';
 import type { BuildOpts, DockerCliFlags } from '../utils/docker';
 import {
@@ -255,7 +256,6 @@ ${dockerignoreHelp}
 			createAsDraft: boolean;
 		},
 	) {
-		const _ = await import('lodash');
 		const doodles = await import('resin-doodles');
 		const sdk = getBalenaSdk();
 		const { deployProject: $deployProject, loadProject } = await import(
@@ -277,74 +277,13 @@ ${dockerignoreHelp}
 				);
 			}
 
-			// find which services use images that already exist locally
-			let servicesToSkip: string[] = await Promise.all(
-				project.descriptors.map(async function (d: ImageDescriptor) {
-					// unconditionally build (or pull) if explicitly requested
-					if (opts.shouldPerformBuild) {
-						return '';
-					}
-					try {
-						const imageWithArch =
-							(isBuildConfig(d.image) ? d.image.tag : d.image) +
-							':' +
-							opts.app.arch;
-						await docker.getImage(imageWithArch || '').inspect();
-
-						return d.serviceName;
-					} catch {
-						// Ignore
-						return '';
-					}
-				}),
-			);
-			servicesToSkip = servicesToSkip.filter((d) => !!d);
-
-			// multibuild takes in a composition and always attempts to
-			// build or pull all services. we workaround that here by
-			// passing a modified composition.
-			const compositionToBuild = _.cloneDeep(project.composition);
-			compositionToBuild.services = _.omit(
-				compositionToBuild.services,
-				servicesToSkip,
-			);
-			let builtImagesByService: Dictionary<BuiltImage> = {};
-			if (_.size(compositionToBuild.services) === 0) {
-				logger.logInfo(
-					'Everything is up to date (use --build to force a rebuild)',
-				);
-			} else {
-				const builtImages = await buildProject({
-					docker,
-					logger,
-					projectPath: project.path,
-					projectName: project.name,
-					composition: compositionToBuild,
-					arch: opts.app.arch,
-					deviceType: opts.app.is_for__device_type[0].slug,
-					emulated: opts.buildEmulated,
-					buildOpts: opts.buildOpts,
-					inlineLogs: composeOpts.inlineLogs,
-					convertEol: composeOpts.convertEol,
-					dockerfilePath: composeOpts.dockerfilePath,
-					multiDockerignore: composeOpts.multiDockerignore,
-				});
-				builtImagesByService = _.keyBy(builtImages, 'serviceName');
-				await tagImagesWithArch(docker, builtImages, opts.app.arch);
-				for (const image of builtImages) {
-					logger.logInfo(
-						`Tagged image ${image.name} with architecture ${opts.app.arch}`,
-					);
-				}
-			}
-			const images: BuiltImage[] = project.descriptors.map(
-				(d) =>
-					builtImagesByService[d.serviceName] ?? {
-						serviceName: d.serviceName,
-						name: (isBuildConfig(d.image) ? d.image.tag : d.image) || '',
-						logs: 'Build skipped; image for service already exists.',
-						props: {},
-					},
+			let images: BuiltImage[] = [];
+			images = await this.buildForOneArch(
+				docker,
+				logger,
+				project,
+				composeOpts,
+				opts,
 			);
 
 			let release: Release | ComposeReleaseInfo['release'];
@@ -412,5 +351,96 @@ ${dockerignoreHelp}
 			logger.logError('Deploy failed');
 			throw err;
 		}
+	}
+
+	private async buildForOneArch(
+		docker: import('dockerode'),
+		logger: import('../utils/logger'),
+		project: ComposeProject,
+		composeOpts: ComposeOpts,
+		opts: {
+			app: ApplicationWithArch; // the application instance to deploy to
+			appName: string;
+			image?: string;
+			dockerfilePath?: string; // alternative Dockerfile
+			shouldPerformBuild: boolean;
+			shouldUploadLogs: boolean;
+			buildEmulated: boolean;
+			buildOpts: BuildOpts;
+			createAsDraft: boolean;
+		},
+	): Promise<BuiltImage[]> {
+		const _ = await import('lodash');
+
+		// find which services use images that already exist locally
+		let servicesToSkip: string[] = await Promise.all(
+			project.descriptors.map(async function (d: ImageDescriptor) {
+				// unconditionally build (or pull) if explicitly requested
+				if (opts.shouldPerformBuild) {
+					return '';
+				}
+				try {
+					const imageWithArch =
+						(isBuildConfig(d.image) ? d.image.tag : d.image) +
+						':' +
+						opts.app.arch;
+					await docker.getImage(imageWithArch || '').inspect();
+
+					return d.serviceName;
+				} catch {
+					// Ignore
+					return '';
+				}
+			}),
+		);
+		servicesToSkip = servicesToSkip.filter((d) => !!d);
+
+		// multibuild takes in a composition and always attempts to
+		// build or pull all services. we workaround that here by
+		// passing a modified composition.
+		const compositionToBuild = _.cloneDeep(project.composition);
+		compositionToBuild.services = _.omit(
+			compositionToBuild.services,
+			servicesToSkip,
+		);
+		let builtImagesByService: Dictionary<BuiltImage> = {};
+		if (_.size(compositionToBuild.services) === 0) {
+			logger.logInfo(
+				'Everything is up to date (use --build to force a rebuild)',
+			);
+		} else {
+			const builtImages = await buildProject({
+				docker,
+				logger,
+				projectPath: project.path,
+				projectName: project.name,
+				composition: compositionToBuild,
+				arch: opts.app.arch,
+				deviceType: opts.app.is_for__device_type[0].slug,
+				emulated: opts.buildEmulated,
+				buildOpts: opts.buildOpts,
+				inlineLogs: composeOpts.inlineLogs,
+				convertEol: composeOpts.convertEol,
+				dockerfilePath: composeOpts.dockerfilePath,
+				multiDockerignore: composeOpts.multiDockerignore,
+			});
+			builtImagesByService = _.keyBy(builtImages, 'serviceName');
+			await tagImagesWithArch(docker, builtImages, opts.app.arch);
+			for (const image of builtImages) {
+				logger.logInfo(
+					`Tagged image ${image.name} with architecture ${opts.app.arch}`,
+				);
+			}
+		}
+		const images: BuiltImage[] = project.descriptors.map(
+			(d) =>
+				builtImagesByService[d.serviceName] ?? {
+					serviceName: d.serviceName,
+					name: (isBuildConfig(d.image) ? d.image.tag : d.image) || '',
+					logs: 'Build skipped; image for service already exists.',
+					props: {},
+				},
+		);
+		return images;
 	}
 }
