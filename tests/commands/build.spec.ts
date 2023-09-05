@@ -17,7 +17,7 @@
 
 import { expect } from 'chai';
 import * as _ from 'lodash';
-import mock = require('mock-require');
+import mock from 'mock-require';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
@@ -257,7 +257,7 @@ describe('balena build', function () {
 		const fsModPath = 'fs';
 		const fsMod = await import(fsModPath);
 		const qemuModPath = '../../build/utils/qemu';
-		const qemuMod = require(qemuModPath);
+		const qemuMod = await import('../../build/utils/qemu');
 		const qemuBinPath = await qemuMod.getQemuPath(arch);
 		try {
 			// patch fs.access and fs.stat to pretend that a copy of the Qemu binary

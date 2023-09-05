@@ -25,7 +25,6 @@ import * as filehound from 'filehound';
 import { Stats } from 'fs';
 import * as fs from 'fs-extra';
 import * as klaw from 'klaw';
-import * as _ from 'lodash';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
 import * as semver from 'semver';
@@ -132,7 +131,7 @@ async function diffPkgOutput(pkgOut: string) {
 	if (expectedOut !== pkgOut) {
 		const sep =
 			'================================================================================';
-		const diff = diffLines(expectedOut, pkgOut);
+		const diff = await diffLines(expectedOut, pkgOut);
 		const msg = `pkg output does not match expected output from "${relSavedPath}"
 Diff:
 ${sep}

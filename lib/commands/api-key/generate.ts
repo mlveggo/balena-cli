@@ -53,7 +53,7 @@ export default class GenerateCmd extends Command {
 
 		let key;
 		try {
-			key = await getBalenaSdk().models.apiKey.create(params.name);
+			key = await (await getBalenaSdk()).models.apiKey.create(params.name);
 		} catch (e) {
 			if (e.name === 'BalenaNotLoggedIn') {
 				throw new ExpectedError(stripIndent`

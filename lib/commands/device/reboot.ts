@@ -47,7 +47,7 @@ export default class DeviceRebootCmd extends Command {
 	public async run() {
 		const { args: params, flags: options } = await this.parse(DeviceRebootCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		// The SDK current throws "BalenaDeviceNotFound: Device not found: xxxxx"
 		// when the device is not online, which may be confusing.

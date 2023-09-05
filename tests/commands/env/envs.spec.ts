@@ -27,12 +27,12 @@ describe('balena envs', function () {
 	let shortUUID: string;
 	let api: BalenaAPIMock;
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		api = new BalenaAPIMock();
 		api.expectGetWhoAmI({ optional: true, persist: true });
 		api.expectGetMixpanel({ optional: true });
 		// Random device UUID used to frustrate _.memoize() in utils/cloud.ts
-		fullUUID = require('crypto').randomBytes(16).toString('hex');
+		fullUUID = (await import('crypto')).randomBytes(16).toString('hex');
 		shortUUID = fullUUID.substring(0, 7);
 	});
 

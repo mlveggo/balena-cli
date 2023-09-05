@@ -27,7 +27,9 @@ export async function applicationCreateBase(
 
 	// Create application
 	try {
-		const application = await getBalenaSdk().models.application.create({
+		const application = await (
+			await getBalenaSdk()
+		).models.application.create({
 			name: params.name,
 			deviceType,
 			organization,

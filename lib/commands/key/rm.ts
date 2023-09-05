@@ -59,6 +59,6 @@ export default class KeyRmCmd extends Command {
 			`Are you sure you want to delete key ${params.id}?`,
 		);
 
-		await getBalenaSdk().models.key.remove(params.id);
+		await (await getBalenaSdk()).models.key.remove(params.id);
 	}
 }

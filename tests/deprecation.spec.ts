@@ -65,12 +65,14 @@ describe('DeprecationChecker', function () {
 		process.env.BALENARC_UNSUPPORTED = originalUnsupported;
 	});
 
-	this.beforeEach(() => {
+	this.beforeEach(async () => {
 		npm = new NpmMock();
 		api = new BalenaAPIMock();
 		api.expectGetWhoAmI({ optional: true, persist: true });
 		api.expectGetMixpanel({ optional: true });
-		checker = new DeprecationChecker(packageJSON.version);
+		checker = await DeprecationChecker.CreateDeprecationChecker(
+			packageJSON.version,
+		);
 
 		getStub = sandbox.stub(mockStorage, 'get').withArgs(checker.cacheFile);
 
@@ -123,7 +125,7 @@ describe('DeprecationChecker', function () {
 
 			expect(out.join('')).to.equal(packageJSON.version + '\n');
 			expect(err.join('')).to.equal(
-				checker.getDeprecationMsg(checker.deprecationDays + 1) + '\n',
+				(await checker.getDeprecationMsg(checker.deprecationDays + 1)) + '\n',
 			);
 		},
 	);

@@ -17,17 +17,17 @@
 
 const windowSize: { width?: number; height?: number } = {};
 
-const updateWindowSize = () => {
-	const size = require('window-size')?.get();
+const updateWindowSize = async () => {
+	const size = (await import('window-size'))?.get();
 	windowSize.width = size?.width;
 	windowSize.height = size?.height;
 };
 
 process.stdout.on('resize', updateWindowSize);
 
-export = (stream: NodeJS.WriteStream = process.stdout) => {
+export = async (stream: NodeJS.WriteStream = process.stdout) => {
 	// make sure we get initial metrics
-	updateWindowSize();
+	await updateWindowSize();
 
 	const currentWindowSize = () => {
 		// always return a copy.

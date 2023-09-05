@@ -81,7 +81,7 @@ export async function createProxyServerOnce(): Promise<[number, number]> {
 }
 
 async function createProxyServer(): Promise<[number, number]> {
-	const httpProxy = require('http-proxy') as typeof import('http-proxy');
+	const httpProxy = (await import('http-proxy')).default;
 
 	const interceptorPort = await createInterceptorServer();
 

@@ -120,7 +120,7 @@ export default class SshCmd extends Command {
 		// Remote connection
 		const { getProxyConfig } = await import('../utils/helpers');
 		const { getOnlineTargetDeviceUuid } = await import('../utils/patterns');
-		const sdk = getBalenaSdk();
+		const sdk = await getBalenaSdk();
 
 		const proxyConfig = getProxyConfig();
 		const useProxy = !!proxyConfig && !options.noproxy;

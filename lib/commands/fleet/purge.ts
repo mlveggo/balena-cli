@@ -53,7 +53,7 @@ export default class FleetPurgeCmd extends Command {
 
 		const { getApplication } = await import('../../utils/sdk');
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		// balena.models.application.purge only accepts a numeric id
 		// so we must first fetch the app to get it's id,

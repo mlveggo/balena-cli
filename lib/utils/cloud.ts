@@ -153,7 +153,7 @@ export async function downloadOSImage(
 		stream.on('balena-image-manager:resolved-version', resolve);
 	});
 
-	const visuals = getVisuals();
+	const visuals = await getVisuals();
 	const bar = new visuals.Progress(
 		`Downloading balenaOS version ${displayVersion}`,
 	);
@@ -222,7 +222,7 @@ async function selectOSVersionFromMenu(
 		name: formatOsVersion(v),
 	}));
 
-	return getCliForm().ask({
+	return (await getCliForm()).ask({
 		message: 'Select the OS version:',
 		type: 'list',
 		choices,
@@ -238,11 +238,9 @@ export async function getOsVersions(
 	deviceType: string,
 	esr: boolean,
 ): Promise<SDK.OsVersion[]> {
-	const sdk = getBalenaSdk();
+	const sdk = await getBalenaSdk();
 	let slug = deviceType;
-	let versions: SDK.OsVersion[] = await sdk.models.os.getAvailableOsVersions(
-		slug,
-	);
+	let versions = await sdk.models.os.getAvailableOsVersions(slug);
 	// if slug is an alias, fetch the real slug
 	if (!versions.length) {
 		// unalias device type slug

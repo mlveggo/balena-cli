@@ -137,7 +137,7 @@ export default class ConfigGenerateCmd extends Command {
 
 	public async run() {
 		const { flags: options } = await this.parse(ConfigGenerateCmd);
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		await this.validateOptions(options);
 
@@ -200,7 +200,9 @@ export default class ConfigGenerateCmd extends Command {
 		// Prompt for values
 		// Pass params as an override: if there is any param with exactly the same name as a
 		// required option, that value is used (and the corresponding question is not asked)
-		const answers = await getCliForm().run(deviceManifest.options, {
+		const answers = await (
+			await getCliForm()
+		).run(deviceManifest.options, {
 			override: { ...options, app: options.fleet, application: options.fleet },
 		});
 		answers.version = options.version;

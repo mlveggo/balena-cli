@@ -13,15 +13,13 @@
 		"removeComments": true,
 		"sourceMap": true,
 		"skipLibCheck": true,
-		"typeRoots" : [
+		"typeRoots": [
 			"./node_modules/@types",
 			"./node_modules/etcher-sdk/typings",
 			"./typings"
 		],
-		"preserveSymlinks": true
+		"preserveSymlinks": true,
+		"resolveJsonModule": true
 	},
-	"include": [
-		"./lib/**/*",
-		"./typings/**/*"
-	]
+	"include": ["./lib/**/*", "./typings/**/*"]
 }

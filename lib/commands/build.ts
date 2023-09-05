@@ -105,7 +105,7 @@ ${dockerignoreHelp}
 
 		(await import('events')).defaultMaxListeners = 1000;
 
-		const sdk = getBalenaSdk();
+		const sdk = await getBalenaSdk();
 
 		const logger = await Command.getLogger();
 		logger.logDebug('Parsing input...');

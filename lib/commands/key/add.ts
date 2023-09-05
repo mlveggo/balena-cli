@@ -84,6 +84,6 @@ export default class KeyAddCmd extends Command {
 			throw new ExpectedError('No public key file or path provided.');
 		}
 
-		await getBalenaSdk().models.key.create(params.name, key);
+		await (await getBalenaSdk()).models.key.create(params.name, key);
 	}
 }

@@ -34,7 +34,7 @@ export default class WhoamiCmd extends Command {
 	public async run() {
 		await this.parse(WhoamiCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		const [whoamiResult, url] = await Promise.all([
 			balena.auth.whoami(),
@@ -44,7 +44,7 @@ export default class WhoamiCmd extends Command {
 		if (whoamiResult?.actorType === 'user') {
 			const { username, email } = whoamiResult;
 			console.log(
-				getVisuals().table.vertical({ username, email, url }, [
+				(await getVisuals()).table.vertical({ username, email, url }, [
 					'$account information$',
 					'username',
 					'email',
@@ -53,19 +53,17 @@ export default class WhoamiCmd extends Command {
 			);
 		} else if (whoamiResult?.actorType === 'device') {
 			console.log(
-				getVisuals().table.vertical({ device: whoamiResult.uuid, url }, [
-					'$account information$',
-					'device',
-					'url',
-				]),
+				(await getVisuals()).table.vertical(
+					{ device: whoamiResult.uuid, url },
+					['$account information$', 'device', 'url'],
+				),
 			);
 		} else if (whoamiResult?.actorType === 'application') {
 			console.log(
-				getVisuals().table.vertical({ application: whoamiResult.slug, url }, [
-					'$account information$',
-					'application',
-					'url',
-				]),
+				(await getVisuals()).table.vertical(
+					{ application: whoamiResult.slug, url },
+					['$account information$', 'application', 'url'],
+				),
 			);
 		}
 	}

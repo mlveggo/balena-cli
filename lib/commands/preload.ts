@@ -39,6 +39,7 @@ import type {
 	Release,
 } from 'balena-sdk';
 import type { Preloader } from 'balena-preload';
+import { ResolvableReturnType } from 'balena-sdk/typings/utils';
 
 export default class PreloadCmd extends Command {
 	public static description = stripIndent`
@@ -144,7 +145,7 @@ Can be repeated to add multiple certificates.\
 	public async run() {
 		const { args: params, flags: options } = await this.parse(PreloadCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 		const balenaPreload = await import('balena-preload');
 		const visuals = getVisuals();
 		const nodeCleanup = await import('node-cleanup');
@@ -175,25 +176,32 @@ Can be repeated to add multiple certificates.\
 			: undefined;
 
 		const progressBars: {
-			[key: string]: InstanceType<ReturnType<typeof getVisuals>['Progress']>;
+			[key: string]: InstanceType<
+				ResolvableReturnType<typeof getVisuals>['Progress']
+			>;
 		} = {};
 
-		const progressHandler = function (event: {
+		const progressHandler = async function (event: {
 			name: string;
 			percentage: number;
 		}) {
-			const progressBar = (progressBars[event.name] ??= new visuals.Progress(
-				event.name,
-			));
+			const progressBar = (progressBars[event.name] ??= new (
+				await visuals
+			).Progress(event.name));
 			return progressBar.update({ percentage: event.percentage });
 		};
 
 		const spinners: {
-			[key: string]: InstanceType<ReturnType<typeof getVisuals>['Spinner']>;
+			[key: string]: InstanceType<
+				ResolvableReturnType<typeof getVisuals>['Spinner']
+			>;
 		} = {};
 
-		const spinnerHandler = function (event: { name: string; action: string }) {
-			const spinner = (spinners[event.name] ??= new visuals.Spinner(
+		const spinnerHandler = async function (event: {
+			name: string;
+			action: string;
+		}) {
+			const spinner = (spinners[event.name] ??= new (await visuals).Spinner(
 				event.name,
 			));
 			if (event.action === 'start') {
@@ -324,7 +332,7 @@ Can be repeated to add multiple certificates.\
 	}
 
 	async getApplicationsWithSuccessfulBuilds(deviceTypeSlug: string) {
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		try {
 			await balena.models.deviceType.get(deviceTypeSlug);
@@ -385,21 +393,20 @@ Can be repeated to add multiple certificates.\
 	async selectApplication(deviceTypeSlug: string) {
 		const visuals = getVisuals();
 
-		const applicationInfoSpinner = new visuals.Spinner(
+		const applicationInfoSpinner = new (await visuals).Spinner(
 			'Downloading list of applications and releases.',
 		);
 		applicationInfoSpinner.start();
 
-		const applications = await this.getApplicationsWithSuccessfulBuilds(
-			deviceTypeSlug,
-		);
+		const applications =
+			await this.getApplicationsWithSuccessfulBuilds(deviceTypeSlug);
 		applicationInfoSpinner.stop();
 		if (applications.length === 0) {
 			throw new ExpectedError(
 				`No fleets found with successful releases for device type '${deviceTypeSlug}'`,
 			);
 		}
-		return getCliForm().ask({
+		return (await getCliForm()).ask({
 			message: 'Select a fleet',
 			type: 'list',
 			choices: applications.map((app) => ({
@@ -409,7 +416,7 @@ Can be repeated to add multiple certificates.\
 		});
 	}
 
-	selectApplicationCommit(releases: Release[]) {
+	async selectApplicationCommit(releases: Release[]) {
 		if (releases.length === 0) {
 			throw new ExpectedError('This fleet has no successful releases.');
 		}
@@ -420,7 +427,7 @@ Can be repeated to add multiple certificates.\
 				value: release.commit,
 			})),
 		);
-		return getCliForm().ask({
+		return (await getCliForm()).ask({
 			message: 'Select a release',
 			type: 'list',
 			default: 'current',
@@ -433,7 +440,7 @@ Can be repeated to add multiple certificates.\
 		commit: string,
 		pinDevice: boolean | undefined,
 	) {
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		if (
 			this.isCurrentCommit(commit) ||
@@ -463,7 +470,9 @@ or keep it unpinned respectively.
 
 Would you like to disable automatic updates for this fleet now?\
 `;
-		const update = await getCliForm().ask({
+		const update = await (
+			await getCliForm()
+		).ask({
 			message,
 			type: 'confirm',
 		});

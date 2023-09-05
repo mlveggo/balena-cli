@@ -53,8 +53,8 @@ export default class DevicePurgeCmd extends Command {
 	public async run() {
 		const { args: params } = await this.parse(DevicePurgeCmd);
 
-		const balena = getBalenaSdk();
-		const ux = getCliUx();
+		const balena = await getBalenaSdk();
+		const ux = await getCliUx();
 
 		const deviceUuids = params.uuid.split(',');
 

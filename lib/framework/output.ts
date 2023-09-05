@@ -47,7 +47,7 @@ export function outputMessage(msg: string) {
  * @param options Output options
  */
 export async function outputData(
-	data: any[] | {},
+	data: any[] | object,
 	fields: string[],
 	options: DataOutputOptions | DataSetOutputOptions,
 ) {
@@ -77,7 +77,7 @@ async function outputDataSet(
 	options.filter = options.filter?.replace(/_/g, ' ');
 	options.sort = options.sort?.replace(/_/g, ' ');
 
-	getCliUx().table(
+	(await getCliUx()).table(
 		data,
 		// Convert fields array to column object keys
 		// that cli.ux expects.  We can later add support
@@ -128,7 +128,7 @@ async function outputDataItem(
 	if (options.json) {
 		printLine(JSON.stringify(outData, undefined, 2));
 	} else {
-		const chalk = getChalk();
+		const chalk = await getChalk();
 		const { capitalize } = await import('lodash');
 
 		// Find longest key, so we can align results

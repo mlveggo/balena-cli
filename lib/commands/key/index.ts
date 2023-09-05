@@ -49,7 +49,7 @@ export default class KeyCmd extends Command {
 	public async run() {
 		const { args: params } = await this.parse(KeyCmd);
 
-		const key = await getBalenaSdk().models.key.get(params.id);
+		const key = await (await getBalenaSdk()).models.key.get(params.id);
 
 		// Use 'name' instead of 'title' to match dashboard.
 		const displayKey = {
@@ -57,7 +57,9 @@ export default class KeyCmd extends Command {
 			name: key.title,
 		};
 
-		console.log(getVisuals().table.vertical(displayKey, ['id', 'name']));
+		console.log(
+			(await getVisuals()).table.vertical(displayKey, ['id', 'name']),
+		);
 
 		// Since the public key string is long, it might
 		// wrap to lines below, causing the table layout to break.

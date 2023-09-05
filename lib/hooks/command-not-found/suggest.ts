@@ -31,7 +31,7 @@ const hook: Hook<'command-not-found'> = async function (
 ) {
 	const Levenshtein = await import('fast-levenshtein');
 	const _ = await import('lodash');
-	const chalk = getChalk();
+	const chalk = await getChalk();
 
 	const commandId = opts.id || '';
 	const command = opts.id?.replace(':', ' ') || '';

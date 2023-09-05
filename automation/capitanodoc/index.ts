@@ -86,7 +86,8 @@ function importOclifCommands(jsFilename: string): OclifCommand[] {
 	const command: OclifCommand =
 		jsFilename === 'help'
 			? (new FakeHelpCommand() as unknown as OclifCommand)
-			: (require(path.join(process.cwd(), jsFilename)).default as OclifCommand);
+			: // eslint-disable-next-line @typescript-eslint/no-var-requires
+			  (require(path.join(process.cwd(), jsFilename)).default as OclifCommand);
 
 	return [command];
 }
@@ -104,5 +105,5 @@ async function printMarkdown() {
 	}
 }
 
-// tslint:disable-next-line:no-floating-promises
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 printMarkdown();

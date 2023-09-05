@@ -46,11 +46,10 @@ export default class DeviceShutdownCmd extends Command {
 	public static authenticated = true;
 
 	public async run() {
-		const { args: params, flags: options } = await this.parse(
-			DeviceShutdownCmd,
-		);
+		const { args: params, flags: options } =
+			await this.parse(DeviceShutdownCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		try {
 			await balena.models.device.shutdown(params.uuid, options);

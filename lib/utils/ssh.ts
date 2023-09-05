@@ -139,7 +139,7 @@ export async function runRemoteCommand({
 	});
 
 	if (process.env.DEBUG) {
-		const logger = (await import('./logger')).getLogger();
+		const logger = await (await import('./logger')).getLogger();
 		logger.logDebug(`Executing [${program},${args}]`);
 	}
 

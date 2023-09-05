@@ -54,11 +54,13 @@ export default class DeviceRenameCmd extends Command {
 	public async run() {
 		const { args: params } = await this.parse(DeviceRenameCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		const newName =
 			params.newName ||
-			(await getCliForm().ask({
+			(await (
+				await getCliForm()
+			).ask({
 				message: 'How do you want to name this device?',
 				type: 'input',
 			})) ||

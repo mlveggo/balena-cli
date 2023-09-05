@@ -67,7 +67,7 @@ export async function executeWithPrivileges(
 				: [process.argv[0], process.argv[1], ...command];
 		}
 		opts.shell = true;
-		const escapedCmd = shellEscape(command);
+		const escapedCmd = await shellEscape(command);
 		// running as ordinary user: elevate privileges
 		if (process.platform === 'win32') {
 			await windosuExec(escapedCmd, stderr);
@@ -115,5 +115,5 @@ async function windosuExec(
 		`;
 		throw new Error(msg);
 	}
-	return require('windosu').exec(escapedArgs.join(' '));
+	return (await import('windosu')).exec(escapedArgs.join(' '));
 }

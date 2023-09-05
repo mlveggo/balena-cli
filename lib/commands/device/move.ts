@@ -93,7 +93,7 @@ export default class DeviceMoveCmd extends Command {
 	public async run() {
 		const { args: params, flags: options } = await this.parse(DeviceMoveCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		// Split uuids string into array of uuids
 		const deviceUuids = params.uuid.split(',');

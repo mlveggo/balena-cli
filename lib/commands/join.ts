@@ -79,7 +79,7 @@ export default class JoinCmd extends Command {
 		const { args: params, flags: options } = await this.parse(JoinCmd);
 
 		const promote = await import('../utils/promote');
-		const sdk = getBalenaSdk();
+		const sdk = await getBalenaSdk();
 		const logger = await Command.getLogger();
 		return promote.join(
 			logger,

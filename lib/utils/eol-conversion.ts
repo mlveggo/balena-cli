@@ -79,7 +79,9 @@ export async function readFileWithEolConversion(
 	// Skip processing of very large files
 	const fileStats = await fs.stat(filepath);
 	if (fileStats.size > LARGE_FILE_THRESHOLD) {
-		globalLogger.logWarn(`CRLF detection skipped for large file: ${filepath}`);
+		(await globalLogger).logWarn(
+			`CRLF detection skipped for large file: ${filepath}`,
+		);
 		return fileBuffer;
 	}
 
@@ -98,18 +100,18 @@ export async function readFileWithEolConversion(
 
 	if (convertEol) {
 		// Convert CRLF->LF
-		globalLogger.logInfo(
+		(await globalLogger).logInfo(
 			`Converting line endings CRLF -> LF for file: ${filepath}`,
 		);
 
 		return convertEolInPlace(fileBuffer);
 	} else {
 		// Immediate warning
-		globalLogger.logWarn(
+		(await globalLogger).logWarn(
 			`CRLF (Windows) line endings detected in file: ${filepath}`,
 		);
 		// And summary warning later
-		globalLogger.deferredLog(
+		(await globalLogger).deferredLog(
 			'Windows-format line endings were detected in some files, but were not converted due to `--noconvert-eol` option.',
 			Logger.Level.WARN,
 		);

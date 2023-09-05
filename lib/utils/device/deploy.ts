@@ -136,11 +136,11 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 	}
 
 	const port = 48484;
-	const api = new DeviceAPI(globalLogger, opts.deviceHost, port);
+	const api = new DeviceAPI(await globalLogger, opts.deviceHost, port);
 
 	// First check that we can access the device with a ping
 	try {
-		globalLogger.logDebug('Checking we can access device');
+		(await globalLogger).logDebug('Checking we can access device');
 		await api.ping();
 	} catch (e) {
 		throw new ExpectedError(stripIndent`
@@ -157,12 +157,14 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 
 	try {
 		const version = await api.getVersion();
-		globalLogger.logDebug(`Checking device supervisor version: ${version}`);
+		(await globalLogger).logDebug(
+			`Checking device supervisor version: ${version}`,
+		);
 		if (!semver.satisfies(version, '>=7.21.4')) {
 			throw new ExpectedError(versionError);
 		}
 		if (!opts.nolive && !semver.satisfies(version, '>=9.7.0')) {
-			globalLogger.logWarn(
+			(await globalLogger).logWarn(
 				`Using livepush requires a balena supervisor version >= 9.7.0. A live session will not be started.`,
 			);
 			opts.nolive = true;
@@ -177,9 +179,9 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 		}
 	}
 
-	globalLogger.logInfo(`Starting build on device ${opts.deviceHost}`);
+	(await globalLogger).logInfo(`Starting build on device ${opts.deviceHost}`);
 
-	const project = await loadProject(globalLogger, {
+	const project = await loadProject(await globalLogger, {
 		convertEol: opts.convertEol,
 		dockerfilePath: opts.dockerfilePath,
 		multiDockerignore: opts.multiDockerignore,
@@ -196,17 +198,19 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 	);
 
 	await checkBuildSecretsRequirements(docker, opts.source);
-	globalLogger.logDebug('Tarring all non-ignored files...');
+	(await globalLogger).logDebug('Tarring all non-ignored files...');
 	const tarStartTime = Date.now();
 	const tarStream = await tarDirectory(opts.source, {
 		composition: project.composition,
 		convertEol: opts.convertEol,
 		multiDockerignore: opts.multiDockerignore,
 	});
-	globalLogger.logDebug(`Tarring complete in ${Date.now() - tarStartTime} ms`);
+	(await globalLogger).logDebug(
+		`Tarring complete in ${Date.now() - tarStartTime} ms`,
+	);
 
 	// Try to detect the device information
-	globalLogger.logDebug('Fetching device information...');
+	(await globalLogger).logDebug('Fetching device information...');
 	const deviceInfo = await api.getDeviceInformation();
 
 	let imageIds: Dictionary<string[]> | undefined;
@@ -221,22 +225,22 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 		tarStream,
 		docker,
 		deviceInfo,
-		globalLogger,
+		await globalLogger,
 		opts,
 		imageIds,
 	);
 
-	globalLogger.outputDeferredMessages();
+	(await globalLogger).outputDeferredMessages();
 	// Print a newline to clearly separate build time and runtime
 	console.log();
 
 	const envs = await environmentFromInput(
 		opts.env,
 		Object.getOwnPropertyNames(project.composition.services),
-		globalLogger,
+		await globalLogger,
 	);
 
-	globalLogger.logDebug('Setting device state...');
+	(await globalLogger).logDebug('Setting device state...');
 	// Now set the target state on the device
 
 	const currentTargetState = await api.getTargetState();
@@ -247,7 +251,9 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 		buildTasks,
 		envs,
 	);
-	globalLogger.logDebug(`Sending target state: ${JSON.stringify(targetState)}`);
+	(await globalLogger).logDebug(
+		`Sending target state: ${JSON.stringify(targetState)}`,
+	);
 
 	await api.setTargetState(targetState);
 
@@ -263,18 +269,18 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 			buildContext: opts.source,
 			buildTasks,
 			docker,
-			logger: globalLogger,
+			logger: await globalLogger,
 			composition: project.composition,
 			imageIds: imageIds!,
 			deployOpts: opts,
 		});
 		promises.push(livepush.init());
 		if (opts.detached) {
-			globalLogger.logLivepush(
+			(await globalLogger).logLivepush(
 				'Running in detached mode, no service logs will be shown',
 			);
 		}
-		globalLogger.logLivepush('Watching for file changes...');
+		(await globalLogger).logLivepush('Watching for file changes...');
 	}
 	try {
 		await awaitInterruptibleTask(() => Promise.all(promises));
@@ -293,11 +299,11 @@ async function streamDeviceLogs(
 	if (opts.detached) {
 		return;
 	}
-	globalLogger.logInfo('Streaming device logs...');
+	(await globalLogger).logInfo('Streaming device logs...');
 	const { connectAndDisplayDeviceLogs } = await import('./logs');
 	return connectAndDisplayDeviceLogs({
 		deviceApi,
-		logger: globalLogger,
+		logger: await globalLogger,
 		system: opts.system || false,
 		filterServices: opts.services,
 		maxAttempts: 1001,
@@ -524,18 +530,18 @@ function assignOutputHandlers(
 ) {
 	_.each(buildTasks, (task) => {
 		if (task.external) {
-			task.progressHook = (progressObj) => {
-				displayBuildLog(
+			task.progressHook = async (progressObj) => {
+				await displayBuildLog(
 					{ serviceName: task.serviceName, message: progressObj.progress },
 					logger,
 				);
 			};
 		} else {
 			task.streamHook = (stream) => {
-				stream.on('data', (buf: Buffer) => {
+				stream.on('data', async (buf: Buffer) => {
 					const str = _.trimEnd(buf.toString());
 					if (str !== '') {
-						displayBuildLog(
+						await displayBuildLog(
 							{ serviceName: task.serviceName, message: str },
 							logger,
 						);
@@ -565,7 +571,9 @@ async function assignDockerBuildOpts(
 	// that we can use all of them for cache
 	const images = await getDeviceDockerImages(docker);
 
-	globalLogger.logDebug(`Using ${images.length} on-device images for cache...`);
+	(await globalLogger).logDebug(
+		`Using ${images.length} on-device images for cache...`,
+	);
 
 	await Promise.all(
 		buildTasks.map(async (task: BuildTask) => {

@@ -198,9 +198,9 @@ export async function createClient(
  *
  * @param opts Command line options like --dockerHost and --dockerPort
  */
-export function getDefaultDockerModemOpts(
+export async function getDefaultDockerModemOpts(
 	opts: DockerConnectionCliFlags,
-): dockerode.DockerOptions {
+): Promise<dockerode.DockerOptions> {
 	const connectOpts: dockerode.DockerOptions = {};
 	const optsOfInterest: Array<keyof dockerode.DockerOptions> = [
 		'ca',
@@ -213,7 +213,7 @@ export function getDefaultDockerModemOpts(
 		'username',
 		'timeout',
 	];
-	const Modem = require('docker-modem');
+	const Modem = await import('docker-modem');
 	const originalDockerHost = process.env.DOCKER_HOST;
 	try {
 		if (opts.dockerHost) {
@@ -223,6 +223,7 @@ export function getDefaultDockerModemOpts(
 		}
 		const defaultOpts = new Modem();
 		for (const opt of optsOfInterest) {
+			// @ts-expect-error some of the options of interest do not exist on `defaultOpts`
 			connectOpts[opt] = defaultOpts[opt];
 		}
 	} finally {
@@ -239,7 +240,7 @@ export function getDefaultDockerModemOpts(
 }
 
 export async function generateConnectOpts(opts: DockerConnectionCliFlags) {
-	let connectOpts = getDefaultDockerModemOpts(opts);
+	let connectOpts = await getDefaultDockerModemOpts(opts);
 
 	// Now override the default options with any explicit command line options
 	if (opts.docker != null && opts.dockerHost == null) {

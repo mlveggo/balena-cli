@@ -88,7 +88,7 @@ function treatFailedBindingAsMissingModule(error: any): void {
 	}
 }
 
-function interpret(error: Error): string {
+async function interpret(error: Error) {
 	treatFailedBindingAsMissingModule(error);
 
 	if (hasCode(error)) {
@@ -96,7 +96,10 @@ function interpret(error: Error): string {
 		const message = errorCodeHandler && errorCodeHandler(error);
 
 		if (message) {
-			return message;
+			if (typeof message === 'string') {
+				return message;
+			}
+			return await message;
 		}
 
 		if (!_.isEmpty(error.message)) {
@@ -107,9 +110,9 @@ function interpret(error: Error): string {
 	return error.message;
 }
 
-function loadDataDirectory(): string {
+async function loadDataDirectory() {
 	try {
-		const settings = new CliSettings();
+		const settings = await CliSettings.CreateCliSettings();
 		return settings.get('dataDirectory') as string;
 	} catch {
 		return os.platform() === 'win32'
@@ -119,7 +122,7 @@ function loadDataDirectory(): string {
 }
 
 const messages: {
-	[key: string]: (error: Error & { path?: string }) => string;
+	[key: string]: (error: Error & { path?: string }) => string | Promise<string>;
 } = {
 	EISDIR: (error) => `File is a directory: ${error.path}`,
 
@@ -141,8 +144,8 @@ const messages: {
 
 	EACCES: (e) => messages.EPERM(e),
 
-	BalenaSettingsPermissionError: () => {
-		const dataDirectory = loadDataDirectory();
+	BalenaSettingsPermissionError: async () => {
+		const dataDirectory = await loadDataDirectory();
 
 		return stripIndent`
 			Error reading data directory: "${dataDirectory}"
@@ -250,7 +253,7 @@ export async function handleError(error: Error | string) {
 			: Math.trunc((error as BalenaError).exitCode) || process.exitCode || 1;
 
 	// Prepare message
-	const message = [interpret(error)];
+	const message = [await interpret(error)];
 
 	if (error.stack && process.env.DEBUG) {
 		message.push('\n' + error.stack);
@@ -266,7 +269,7 @@ export async function handleError(error: Error | string) {
 	if (isExpectedError) {
 		printExpectedErrorMessage(message.join('\n'));
 	} else {
-		printErrorMessage(message.join('\n'));
+		await printErrorMessage(message.join('\n'));
 
 		// Report "unexpected" errors via Sentry.io
 		if (!process.env.BALENARC_NO_SENTRY) {
@@ -280,8 +283,8 @@ export async function handleError(error: Error | string) {
 	}
 }
 
-export const printErrorMessage = function (message: string) {
-	const chalk = getChalk();
+export const printErrorMessage = async function (message: string) {
+	const chalk = await getChalk();
 
 	// Only first line should be red
 	const messageLines = message.split('\n');

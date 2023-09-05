@@ -73,7 +73,7 @@ export default class NoteCmd extends Command {
 			throw new ExpectedError('Missing device UUID (--device)');
 		}
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		return balena.models.device.setNote(options.device, params.note);
 	}

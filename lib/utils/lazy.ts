@@ -1,3 +1,5 @@
+/* eslint-disable no-restricted-imports */
+/** the import blacklist is to enforce lazy loading so exempt this file  */
 /*
 Copyright 2020 Balena
 
@@ -14,13 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// tslint:disable:import-blacklist - the import blacklist is to enforce lazy loading so exempt this file
-
-import type * as BalenaSdk from 'balena-sdk';
 import type { Chalk } from 'chalk';
-import type * as visuals from 'resin-cli-visuals';
-import type * as CliForm from 'resin-cli-form';
-import type { ux } from '@oclif/core';
 
 // Equivalent of _.once but avoiding the need to import lodash for lazy deps
 const once = <T>(fn: () => T) => {
@@ -43,25 +39,21 @@ export const onceAsync = <T>(fn: () => Promise<T>) => {
 	};
 };
 
-export const getBalenaSdk = once(() =>
-	(require('balena-sdk') as typeof BalenaSdk).fromSharedOptions(),
-);
+export const getBalenaSdk = once(async () => {
+	const { fromSharedOptions } = await import('balena-sdk');
+	return fromSharedOptions();
+});
 
-export const getVisuals = once(
-	() => require('resin-cli-visuals') as typeof visuals,
-);
+export const getVisuals = once(async () => await import('resin-cli-visuals'));
 
-export const getChalk = once(() => require('chalk') as Chalk);
+export const getChalk = once(async () => (await import('chalk')) as Chalk);
 
-export const getCliForm = once(
-	() => require('resin-cli-form') as typeof CliForm,
-);
+export const getCliForm = once(async () => await import('resin-cli-form'));
 
 export const getCliUx = once(
-	() => require('@oclif/core/lib/cli-ux') as typeof ux,
+	async () => await import('@oclif/core/lib/cli-ux'),
 );
 
 // Directly export stripIndent as we always use it immediately, but importing just `stripIndent` reduces startup time
-export const stripIndent =
-	// tslint:disable-next-line:no-var-requires
-	require('common-tags/lib/stripIndent') as typeof import('common-tags/lib/stripIndent');
+import sI = require('common-tags/lib/stripIndent');
+export { sI as stripIndent };

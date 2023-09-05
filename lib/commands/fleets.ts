@@ -52,7 +52,7 @@ export default class FleetsCmd extends Command {
 	public async run() {
 		const { flags: options } = await this.parse(FleetsCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		const pineOptions = {
 			$select: ['id', 'app_name', 'slug'],

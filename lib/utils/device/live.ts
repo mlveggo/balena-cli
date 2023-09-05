@@ -194,6 +194,7 @@ export class LivepushManager {
 					);
 					const eventQueue = this.updateEventsWaiting[$serviceName];
 					eventQueue.push(changedPath);
+					// eslint-disable-next-line @typescript-eslint/no-floating-promises
 					this.getDebouncedEventHandler($serviceName)();
 				};
 
@@ -477,30 +478,36 @@ export class LivepushManager {
 		serviceName: string,
 		livepush: Livepush,
 	) {
-		const msgString = (msg: string) =>
-			`[${getServiceColourFn(serviceName)(serviceName)}] ${msg}`;
-		const log = (msg: string) => this.logger.logLivepush(msgString(msg));
-		const error = (msg: string) => this.logger.logError(msgString(msg));
-		const debugLog = (msg: string) => this.logger.logDebug(msgString(msg));
+		const msgString = async (msg: string) =>
+			`[${(await getServiceColourFn(serviceName))(serviceName)}] ${msg}`;
+		const log = async (msg: string) =>
+			this.logger.logLivepush(await msgString(msg));
+		const error = async (msg: string) =>
+			this.logger.logError(await msgString(msg));
+		const debugLog = async (msg: string) =>
+			this.logger.logDebug(await msgString(msg));
 
-		livepush.on('commandExecute', (command) =>
-			log(`Executing command: \`${command.command}\``),
+		livepush.on(
+			'commandExecute',
+			async (command) => await log(`Executing command: \`${command.command}\``),
 		);
 		livepush.on('commandOutput', (output) =>
 			log(`   ${output.output.data.toString()}`),
 		);
-		livepush.on('commandReturn', ({ returnCode, command }) => {
+		livepush.on('commandReturn', async ({ returnCode, command }) => {
 			if (returnCode !== 0) {
-				error(`  Command ${command} failed with exit code: ${returnCode}`);
+				await error(
+					`  Command ${command} failed with exit code: ${returnCode}`,
+				);
 			} else {
-				debugLog(`Command ${command} exited successfully`);
+				await debugLog(`Command ${command} exited successfully`);
 			}
 		});
-		livepush.on('containerRestart', () => {
-			log('Restarting service...');
+		livepush.on('containerRestart', async () => {
+			await log('Restarting service...');
 		});
-		livepush.on('cancel', () => {
-			log('Cancelling current livepush...');
+		livepush.on('cancel', async () => {
+			await log('Cancelling current livepush...');
 		});
 	}
 

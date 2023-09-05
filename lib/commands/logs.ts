@@ -95,7 +95,7 @@ export default class LogsCmd extends Command {
 	public async run() {
 		const { args: params, flags: options } = await this.parse(LogsCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 		const { serviceIdToName } = await import('../utils/cloud');
 		const { connectAndDisplayDeviceLogs, displayLogObject } = await import(
 			'../utils/device/logs'
@@ -105,20 +105,20 @@ export default class LogsCmd extends Command {
 		);
 		const Logger = await import('../utils/logger');
 
-		const logger = Logger.getLogger();
+		const logger = await Logger.getLogger();
 
 		const displayCloudLog = async (line: LogMessage) => {
 			if (!line.isSystem) {
 				const serviceName =
 					(await serviceIdToName(balena, line.serviceId)) ?? 'Unknown service';
-				displayLogObject(
+				await displayLogObject(
 					{ serviceName, ...line },
 					logger,
 					options.system || false,
 					options.service,
 				);
 			} else {
-				displayLogObject(
+				await displayLogObject(
 					line,
 					logger,
 					options.system || false,

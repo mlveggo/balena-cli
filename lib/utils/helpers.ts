@@ -32,9 +32,9 @@ export function getGroupDefaults(group: {
 		.value();
 }
 
-export function stateToString(state: OperationState) {
+export async function stateToString(state: OperationState) {
 	const percentage = _.padStart(`${state.percentage}`, 3, '0');
-	const chalk = getChalk();
+	const chalk = await getChalk();
 	const result = `${chalk.blue(percentage + '%')} ${chalk.cyan(
 		state.operation.command,
 	)}`;
@@ -90,8 +90,7 @@ export async function sudo(
 }
 
 export async function runCommand<T>(commandArgs: string[]): Promise<T> {
-	const { isSubcommand } =
-		require('../preparser') as typeof import('../preparser');
+	const { isSubcommand } = await import('../preparser');
 	if (await isSubcommand(commandArgs)) {
 		commandArgs = [
 			commandArgs[0] + ':' + commandArgs[1],
@@ -99,7 +98,7 @@ export async function runCommand<T>(commandArgs: string[]): Promise<T> {
 		];
 	}
 
-	const { run } = require('@oclif/core') as typeof import('@oclif/core');
+	const { run } = await import('@oclif/core');
 	return run(commandArgs) as Promise<T>;
 }
 
@@ -108,7 +107,7 @@ export async function getManifest(
 	deviceType: string,
 ): Promise<BalenaSdk.DeviceTypeJson.DeviceType> {
 	const init = await import('balena-device-init');
-	const sdk = getBalenaSdk();
+	const sdk = await getBalenaSdk();
 	const manifest = await init.getImageManifest(image);
 	if (
 		manifest != null &&
@@ -133,7 +132,7 @@ export const areDeviceTypesCompatible = async (
 	if (appDeviceTypeSlug === osDeviceTypeSlug) {
 		return true;
 	}
-	const sdk = getBalenaSdk();
+	const sdk = await getBalenaSdk();
 	const pineOptions = {
 		$select: 'is_of__cpu_architecture',
 		$expand: {
@@ -160,14 +159,14 @@ export async function osProgressHandler(step: InitializeEmitter) {
 	step.on('stdout', process.stdout.write.bind(process.stdout));
 	step.on('stderr', process.stderr.write.bind(process.stderr));
 
-	step.on('state', function (state) {
+	step.on('state', async function (state) {
 		if (state.operation.command === 'burn') {
 			return;
 		}
-		console.log(exports.stateToString(state));
+		console.log(await exports.stateToString(state));
 	});
 
-	const visuals = getVisuals();
+	const visuals = await getVisuals();
 	const progressBars = {
 		write: new visuals.Progress('Writing Device OS'),
 		check: new visuals.Progress('Validating Device OS'),
@@ -183,7 +182,7 @@ export async function osProgressHandler(step: InitializeEmitter) {
 
 export async function getAppWithArch(applicationName: string) {
 	const { getApplication } = await import('./sdk');
-	const balena = getBalenaSdk();
+	const balena = await getBalenaSdk();
 	const app = await getApplication(balena, applicationName, {
 		$expand: {
 			application_type: {
@@ -343,14 +342,14 @@ export function isWindowsComExeShell() {
  * functions, set this to false because child_process.spawn() always uses
  * env.ComSpec (cmd.exe) on Windows, even when running on MSYS / MSYS2.
  */
-export function shellEscape(args: string[], detectShell = false): string[] {
+export async function shellEscape(args: string[], detectShell = false) {
 	const isCmdExe = detectShell
 		? isWindowsComExeShell()
 		: process.platform === 'win32';
 	if (isCmdExe) {
 		return args.map((v) => windowsCmdExeEscapeArg(v));
 	} else {
-		const shellEscapeFunc: typeof import('shell-escape') = require('shell-escape');
+		const shellEscapeFunc = await import('shell-escape');
 		return args.map((v) => shellEscapeFunc([v]));
 	}
 }
@@ -409,7 +408,6 @@ export function getProxyConfig(): ProxyConfig | undefined {
 	} else {
 		const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 		if (proxyUrl) {
-			const { URL } = require('url') as typeof import('url');
 			let url: URL;
 			try {
 				url = new URL(proxyUrl);
@@ -444,9 +442,9 @@ export const expandForAppName = {
  * with PowerShell to avoid the built-in "Terminate batch job? (Y/N)" prompt
  * that appears to result in ungraceful / abrupt process termination.
  */
-const installReadlineSigintEmitter = _.once(function emitSigint() {
+const installReadlineSigintEmitter = _.once(async function emitSigint() {
 	if (process.platform === 'win32') {
-		const readline = require('readline') as typeof import('readline');
+		const readline = await import('readline');
 		const rl = readline.createInterface({
 			input: process.stdin,
 			output: process.stdout,
@@ -460,8 +458,8 @@ const installReadlineSigintEmitter = _.once(function emitSigint() {
  * @param sigintHandler The handler function
  * @param once Whether the handler should be called no more than once
  */
-export function addSIGINTHandler(sigintHandler: () => void, once = true) {
-	installReadlineSigintEmitter();
+export async function addSIGINTHandler(sigintHandler: () => void, once = true) {
+	await installReadlineSigintEmitter();
 	if (once) {
 		process.once('SIGINT', sigintHandler);
 	} else {
@@ -484,11 +482,11 @@ export async function awaitInterruptibleTask<
 >(task: T, ...theArgs: Parameters<T>): Promise<ReturnType<T>> {
 	let sigintHandler: () => void = () => undefined;
 	const sigintPromise = new Promise<T>((_resolve, reject) => {
-		sigintHandler = () => {
-			const { SIGINTError } =
-				require('../errors') as typeof import('../errors');
+		sigintHandler = async () => {
+			const { SIGINTError } = await import('../errors');
 			reject(new SIGINTError('Task aborted on SIGINT signal'));
 		};
+		// eslint-disable-next-line @typescript-eslint/no-floating-promises
 		addSIGINTHandler(sigintHandler);
 	});
 	try {

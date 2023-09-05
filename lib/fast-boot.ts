@@ -48,9 +48,10 @@ export async function start() {
 	}
 }
 
-export function stop() {
+export async function stop() {
 	if (fastBootStarted) {
-		require('fast-boot2').stop();
+		const fastBoot2 = await import('fast-boot2');
+		fastBoot2.stop();
 	}
 	fastBootStarted = false;
 }
@@ -75,7 +76,8 @@ async function $start() {
 	]);
 	// Include timestamps to account for dev-time changes to node_modules
 	const cacheKiller = `${pJson.version}-${pStat.mtimeMs}-${nStat.mtimeMs}`;
-	require('fast-boot2').start({
+	const fastBoot2 = await import('fast-boot2');
+	fastBoot2.start({
 		cacheFile,
 		cacheKiller,
 		cacheScope: root,

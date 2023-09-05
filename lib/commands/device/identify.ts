@@ -47,7 +47,7 @@ export default class DeviceIdentifyCmd extends Command {
 	public async run() {
 		const { args: params } = await this.parse(DeviceIdentifyCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		try {
 			await balena.models.device.identify(params.uuid);

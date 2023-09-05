@@ -77,7 +77,7 @@ export default class EnvRmCmd extends Command {
 			'Are you sure you want to delete the environment variable?',
 		);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 		await balena.pine.delete({
 			resource: ec.getVarResourceName(opt.config, opt.device, opt.service),
 			id: params.id,

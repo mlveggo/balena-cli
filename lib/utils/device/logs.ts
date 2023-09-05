@@ -69,13 +69,13 @@ async function displayDeviceLogs(
 		gotSignal = true;
 		logs.emit('close');
 	};
-	addSIGINTHandler(handleSignal);
+	await addSIGINTHandler(handleSignal);
 	process.once('SIGTERM', handleSignal);
 	try {
 		await new Promise((_resolve, reject) => {
 			const jsonStream = ndjsonParse();
-			jsonStream.on('data', (log) => {
-				displayLogObject(log, logger, system, filterServices);
+			jsonStream.on('data', async (log) => {
+				await displayLogObject(log, logger, system, filterServices);
 			});
 			jsonStream.on('error', (e) => {
 				logger.logWarn(`Error parsing NDJSON log chunk: ${e}`);
@@ -142,19 +142,19 @@ export async function connectAndDisplayDeviceLogs({
 	}
 }
 
-export function displayBuildLog(log: BuildLog, logger: Logger): void {
-	const toPrint = `${getServiceColourFn(log.serviceName)(
+export async function displayBuildLog(log: BuildLog, logger: Logger) {
+	const toPrint = `${(await getServiceColourFn(log.serviceName))(
 		`[${log.serviceName}]`,
 	)} ${log.message}`;
 	logger.logBuild(toPrint);
 }
 
-export function displayLogObject<T extends Log>(
+export async function displayLogObject<T extends Log>(
 	obj: T,
 	logger: Logger,
 	system: boolean,
 	filterServices?: string[],
-): void {
+) {
 	const d = obj.timestamp != null ? new Date(obj.timestamp) : new Date();
 	let toPrint = `[${d.toISOString()}]`;
 
@@ -167,7 +167,7 @@ export function displayLogObject<T extends Log>(
 			return;
 		}
 
-		const colourFn = getServiceColourFn(obj.serviceName);
+		const colourFn = await getServiceColourFn(obj.serviceName);
 
 		toPrint += ` ${colourFn(`[${obj.serviceName}]`)}`;
 	} else if (filterServices != null && !system) {
@@ -184,8 +184,10 @@ export function displayLogObject<T extends Log>(
 export const getServiceColourFn = _.memoize(_getServiceColourFn);
 
 const colorHash = new ColorHash();
-function _getServiceColourFn(serviceName: string): (msg: string) => string {
+async function _getServiceColourFn(
+	serviceName: string,
+): Promise<(msg: string) => string> {
 	const [r, g, b] = colorHash.rgb(serviceName);
 
-	return getChalk().rgb(r, g, b);
+	return (await getChalk()).rgb(r, g, b);
 }

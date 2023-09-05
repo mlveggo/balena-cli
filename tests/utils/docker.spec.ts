@@ -29,11 +29,11 @@ const defaultSocketPath =
 		: '/var/run/docker.sock';
 
 describe('getDefaultDockerModemOpts() function', function () {
-	it('should use a Unix socket when --dockerHost is not used', () => {
+	it('should use a Unix socket when --dockerHost is not used', async () => {
 		const cliFlags: DockerConnectionCliFlags = {
 			dockerPort: 2376,
 		};
-		const defaultOps = getDefaultDockerModemOpts(cliFlags);
+		const defaultOps = await getDefaultDockerModemOpts(cliFlags);
 		expect(defaultOps).to.deep.include({
 			host: undefined,
 			port: undefined,

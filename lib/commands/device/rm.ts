@@ -55,7 +55,7 @@ export default class DeviceRmCmd extends Command {
 	public async run() {
 		const { args: params, flags: options } = await this.parse(DeviceRmCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 		const patterns = await import('../../utils/patterns');
 
 		// Confirm

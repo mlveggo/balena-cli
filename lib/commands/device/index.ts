@@ -74,7 +74,7 @@ export default class DeviceCmd extends Command {
 	public async run() {
 		const { args: params, flags: options } = await this.parse(DeviceCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		const device = (await balena.models.device.get(params.uuid, {
 			$select: [
@@ -167,7 +167,7 @@ export default class DeviceCmd extends Command {
 		}
 
 		console.log(
-			getVisuals().table.vertical(device, [
+			(await getVisuals()).table.vertical(device, [
 				`$${device.device_name}$`,
 				'id',
 				'device_type',

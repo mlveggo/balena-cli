@@ -40,11 +40,11 @@ export default class BalenaHelp extends Help {
 	public static usage: 'help [command]';
 
 	public async showHelp(argv: string[]) {
-		const chalk = getChalk();
+		const chalk = await getChalk();
 		const subject = getHelpSubject(argv);
 		if (!subject) {
 			const verbose = argv.includes('-v') || argv.includes('--verbose');
-			console.log(this.getCustomRootHelp(verbose));
+			console.log(await this.getCustomRootHelp(verbose));
 			return;
 		}
 
@@ -83,8 +83,8 @@ export default class BalenaHelp extends Help {
 		console.log(`command ${chalk.cyan.bold(subject)} not found`);
 	}
 
-	getCustomRootHelp(showAllCommands: boolean): string {
-		const { bold, cyan } = getChalk();
+	async getCustomRootHelp(showAllCommands: boolean) {
+		const { bold, cyan } = await getChalk();
 
 		let commands = this.config.commands;
 		commands = commands.filter((c) => this.opts.all || !c.hidden);
@@ -147,9 +147,9 @@ See: https://git.io/JRHUW#deprecation-policy`,
 		];
 		globalOps[0][0] = globalOps[0][0].padEnd(usageLength);
 
-		const { deprecationPolicyNote, reachingOut } =
-			require('./utils/messages') as typeof import('./utils/messages');
-
+		const { deprecationPolicyNote, reachingOut } = await import(
+			'./utils/messages'
+		);
 		return [
 			bold('USAGE'),
 			'$ balena [COMMAND] [OPTIONS]',
@@ -164,8 +164,8 @@ See: https://git.io/JRHUW#deprecation-policy`,
 		].join('\n');
 	}
 
-	protected formatGlobalOpts(opts: string[][]) {
-		const { dim } = getChalk();
+	protected async formatGlobalOpts(opts: string[][]) {
+		const { dim } = await getChalk();
 		const outLines: string[] = [];
 		let flagWidth = 0;
 		for (const opt of opts) {
@@ -205,8 +205,8 @@ See: https://git.io/JRHUW#deprecation-policy`,
 		return indent(body, 2);
 	}
 
-	protected formatDescription(desc: string = '') {
-		const chalk = getChalk();
+	protected async formatDescription(desc: string = '') {
+		const chalk = await getChalk();
 
 		desc = desc.split('\n')[0];
 		// Remove any ending .

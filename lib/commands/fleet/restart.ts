@@ -52,7 +52,7 @@ export default class FleetRestartCmd extends Command {
 
 		const { getApplication } = await import('../../utils/sdk');
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		// Disambiguate application
 		const application = await getApplication(balena, params.fleet, {

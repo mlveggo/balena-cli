@@ -77,7 +77,7 @@ export default class ScanCmd extends Command {
 			options.timeout != null ? options.timeout * 1000 : undefined;
 
 		// Find active local devices
-		const ux = getCliUx();
+		const ux = await getCliUx();
 		ux.action.start('Scanning for local balenaOS devices');
 
 		const localDevices = await discoverLocalBalenaOsDevices(discoverTimeout);

@@ -52,11 +52,18 @@ export class DeprecationChecker {
 	cachedTimestamps: ReleaseTimestampsByVersion;
 	nextMajorVersion: string; // semver without the 'v' prefix
 
-	constructor(protected currentVersion: string) {
-		const semver = require('semver') as typeof import('semver');
-		const major = semver.major(this.currentVersion, { loose: true });
+	constructor(
+		protected currentVersion: string,
+		protected major: number,
+	) {
 		this.nextMajorVersion = `${major + 1}.0.0`;
 	}
+
+	public static CreateDeprecationChecker = async (currentVersion: string) => {
+		const semver = await import('semver');
+		const major = semver.major(currentVersion, { loose: true });
+		return new DeprecationChecker(currentVersion, major);
+	};
 
 	public async init() {
 		if (this.initialized) {
@@ -201,14 +208,13 @@ or release date not available`);
 			const { ExpectedError } = await import('./errors');
 			throw new ExpectedError(this.getExpiryMsg(daysElapsed));
 		} else if (daysElapsed > this.deprecationDays && process.stderr.isTTY) {
-			console.error(this.getDeprecationMsg(daysElapsed));
+			console.error(await this.getDeprecationMsg(daysElapsed));
 		}
 	}
 
 	/** Separate function for the benefit of code testing */
-	getDeprecationMsg(daysElapsed: number) {
-		const { warnify } =
-			require('./utils/messages') as typeof import('./utils/messages');
+	getDeprecationMsg = async (daysElapsed: number) => {
+		const { warnify } = await import('./utils/messages');
 		return warnify(`\
 CLI version ${this.nextMajorVersion} was released ${daysElapsed} days ago: please upgrade.
 This version of the balena CLI (${this.currentVersion}) will exit with an error
@@ -219,7 +225,7 @@ The --unsupported flag may be used to bypass this deprecation check and
 allow the CLI to keep working beyond the deprecation period.  However,
 note that the balenaCloud or openBalena backends may be updated in a way
 that is no longer compatible with this version.`);
-	}
+	};
 
 	/** Separate function the benefit of code testing */
 	getExpiryMsg(daysElapsed: number) {

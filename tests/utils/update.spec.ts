@@ -30,25 +30,25 @@ describe('getNotifierMessage() unit test', function () {
 		name: '',
 	};
 
-	it('should return a simple update message including installation instructions', () => {
+	it('should return a simple update message including installation instructions', async () => {
 		const mockUpdateInfo = {
 			...template,
 			current: '12.1.1',
 			latest: '12.3.0',
 		};
-		const msg = getNotifierMessage(mockUpdateInfo);
+		const msg = await getNotifierMessage(mockUpdateInfo);
 		expect(msg).to.equal(stripIndent`
 			Update available 12.1.1 → 12.3.0
 			https://github.com/balena-io/balena-cli/blob/master/INSTALL.md`);
 	});
 
-	it('should include a release notes link when a new major version is available', () => {
+	it('should include a release notes link when a new major version is available', async () => {
 		const mockUpdateInfo = {
 			...template,
 			current: '12.1.1',
 			latest: '13.3.0',
 		};
-		const msg = getNotifierMessage(mockUpdateInfo);
+		const msg = await getNotifierMessage(mockUpdateInfo);
 		expect(msg).to.equal(stripIndent`
 			Update available 12.1.1 → 13.3.0
 			https://github.com/balena-io/balena-cli/blob/master/INSTALL.md
@@ -57,23 +57,23 @@ describe('getNotifierMessage() unit test', function () {
 			https://github.com/balena-io/balena-cli/wiki/CLI-v13-Release-Notes`);
 	});
 
-	it('should return an empty string if no updates are available', () => {
+	it('should return an empty string if no updates are available', async () => {
 		const mockUpdateInfo = {
 			...template,
 			current: '12.1.1',
 			latest: '12.1.1',
 		};
-		const msg = getNotifierMessage(mockUpdateInfo);
+		const msg = await getNotifierMessage(mockUpdateInfo);
 		expect(msg).to.equal('');
 	});
 
-	it('should return an empty string if no updates are available', () => {
+	it('should return an empty string if no updates are available', async () => {
 		const mockUpdateInfo = {
 			...template,
 			current: '14.1.1',
 			latest: '12.1.1',
 		};
-		const msg = getNotifierMessage(mockUpdateInfo);
+		const msg = await getNotifierMessage(mockUpdateInfo);
 		expect(msg).to.equal('');
 	});
 });

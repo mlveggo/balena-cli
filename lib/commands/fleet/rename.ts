@@ -62,7 +62,7 @@ export default class FleetRenameCmd extends Command {
 		const { validateApplicationName } = await import('../../utils/validation');
 		const { ExpectedError } = await import('../../errors');
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		// Disambiguate target application (if params.params is a number, it could either be an ID or a numerical name)
 		const { getApplication } = await import('../../utils/sdk');
@@ -91,7 +91,9 @@ export default class FleetRenameCmd extends Command {
 		// Ascertain new name
 		const newName =
 			params.newName ||
-			(await getCliForm().ask({
+			(await (
+				await getCliForm()
+			).ask({
 				message: 'Please enter the new name for this fleet:',
 				type: 'input',
 				validate: validateApplicationName,

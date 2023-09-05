@@ -122,7 +122,7 @@ export default class LoginCmd extends Command {
 	public async run() {
 		const { flags: options, args: params } = await this.parse(LoginCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 		const messages = await import('../utils/messages');
 		const balenaUrl = await balena.settings.get('balenaUrl');
 
@@ -180,13 +180,15 @@ ${messages.reachingOut}`);
 		// Token
 		if (loginOptions.token) {
 			if (!token) {
-				token = await getCliForm().ask({
+				token = await (
+					await getCliForm()
+				).ask({
 					message: 'Session token or API key from the preferences page',
 					name: 'token',
 					type: 'input',
 				});
 			}
-			const balena = getBalenaSdk();
+			const balena = await getBalenaSdk();
 			await balena.auth.loginWithToken(token!);
 			try {
 				if (!(await balena.auth.whoami())) {
@@ -203,7 +205,7 @@ ${messages.reachingOut}`);
 		// Credentials
 		else if (loginOptions.credentials) {
 			const patterns = await import('../utils/patterns');
-			return patterns.authenticate(loginOptions);
+			return await patterns.authenticate(loginOptions);
 		}
 		// Web
 		else if (loginOptions.web) {

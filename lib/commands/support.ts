@@ -77,8 +77,8 @@ export default class SupportCmd extends Command {
 	public async run() {
 		const { args: params, flags: options } = await this.parse(SupportCmd);
 
-		const balena = getBalenaSdk();
-		const ux = getCliUx();
+		const balena = await getBalenaSdk();
+		const ux = await getCliUx();
 
 		const enabling = params.action === 'enable';
 

@@ -56,7 +56,7 @@ export default class FleetRmCmd extends Command {
 
 		const { confirm } = await import('../../utils/patterns');
 		const { getApplication } = await import('../../utils/sdk');
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		// Confirm
 		await confirm(

@@ -29,7 +29,7 @@ export interface TestOutput {
 	exitCode?: number; // process.exitCode
 }
 
-function matchesNodeEngineVersionWarn(msg: string) {
+async function matchesNodeEngineVersionWarn(msg: string) {
 	if (/^-----+\r?\n?$/.test(msg)) {
 		return true;
 	}
@@ -41,7 +41,7 @@ function matchesNodeEngineVersionWarn(msg: string) {
 			.map((l) => l.trim())
 			.filter((l) => l);
 
-	const { getNodeEngineVersionWarn } = require('../build/utils/messages');
+	const { getNodeEngineVersionWarn } = await import('../build/utils/messages');
 	let nodeEngineWarn: string = getNodeEngineVersionWarn(
 		'x.y.z',
 		packageJSON.engines.node,
@@ -66,14 +66,14 @@ export function filterCliOutputForTests({
 }): { err: string[]; out: string[] } {
 	return {
 		err: err.filter(
-			(line: string) =>
+			async (line: string) =>
 				line &&
 				!line.match(/\[debug\]/i) &&
 				// TODO stop this warning message from appearing when running
 				// sdk.setSharedOptions multiple times in the same process
 				!line.startsWith('Shared SDK options') &&
 				!line.startsWith('WARN: disabling Sentry.io error reporting') &&
-				!matchesNodeEngineVersionWarn(line),
+				!(await matchesNodeEngineVersionWarn(line)),
 		),
 		out: out.filter((line: string) => line && !line.match(/\[debug\]/i)),
 	};
@@ -163,7 +163,7 @@ async function runCommandInSubprocess(
 			standalonePath,
 			cmd.split(' ').filter((c) => c),
 			{ env: { ...process.env, ...addedEnvs } },
-			($error, $stdout, $stderr) => {
+			async ($error, $stdout, $stderr) => {
 				stderr = $stderr || '';
 				stdout = $stdout || '';
 				// $error will be set if the CLI child process exits with a
@@ -173,8 +173,7 @@ async function runCommandInSubprocess(
 					const msg = `
 Error (possibly expected) executing child CLI process "${standalonePath}"
 ${$error}`;
-					const { warnify } =
-						require('../build/utils/messages') as typeof import('../build/utils/messages');
+					const { warnify } = await import('../build/utils/messages');
 					console.error(warnify(msg, '[debug] '));
 				}
 				resolve();
@@ -268,6 +267,7 @@ export function cleanOutput(
  * coded from observation of a few samples only, and may not cover all cases.
  */
 export function monochrome(text: string): string {
+	// eslint-disable-next-line no-control-regex
 	return text.replace(/\u001b\[\??(\d+;)*\d+[a-zA-Z]\r?/g, '');
 }
 

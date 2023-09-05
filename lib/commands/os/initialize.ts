@@ -68,7 +68,9 @@ export default class OsInitializeCmd extends Command {
 
 		const manifest = await getManifest(params.image, options.type);
 
-		const answers = await getCliForm().run(manifest.initialization?.options, {
+		const answers = await (
+			await getCliForm()
+		).run(manifest.initialization?.options, {
 			override: {
 				drive: options.drive,
 			},

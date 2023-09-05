@@ -16,7 +16,6 @@
  */
 
 import { spawn } from 'child_process';
-import * as _ from 'lodash';
 import * as path from 'path';
 
 export const ROOT = path.join(__dirname, '..');
@@ -64,8 +63,8 @@ export class StdOutTap {
  * Diff strings by line, using the 'diff' npm package:
  * https://www.npmjs.com/package/diff
  */
-export function diffLines(str1: string, str2: string): string {
-	const { diffTrimmedLines } = require('diff');
+export const diffLines = async (str1: string, str2: string) => {
+	const { diffTrimmedLines } = await import('diff');
 	const diffObjs = diffTrimmedLines(str1, str2);
 	const prefix = (chunk: string, char: string) =>
 		chunk
@@ -82,7 +81,7 @@ export function diffLines(str1: string, str2: string): string {
 		})
 		.join('\n');
 	return diffStr;
-}
+};
 
 export function loadPackageJson() {
 	return require(path.join(ROOT, 'package.json'));
@@ -98,7 +97,7 @@ export function loadPackageJson() {
  * @returns The program's full path, e.g. 'C:\WINDOWS\System32\OpenSSH\ssh.EXE'
  */
 export async function which(program: string): Promise<string> {
-	const whichMod = await import('which');
+	const { default: whichMod } = await import('which');
 	let programPath: string;
 	try {
 		programPath = await whichMod(program);

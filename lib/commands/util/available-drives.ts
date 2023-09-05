@@ -57,13 +57,13 @@ export default class UtilAvailableDrivesCmd extends Command {
 
 		if (scanner.drives.size === 0) {
 			console.error(
-				`${getChalk().red(
+				`${(await getChalk()).red(
 					'x',
 				)} No available drives were detected, plug one in!`,
 			);
 		} else {
 			console.log(
-				getVisuals().table.horizontal(
+				(await getVisuals()).table.horizontal(
 					Array.from(scanner.drives).map(prepareDriveInfo),
 					['device', 'size', 'description'],
 				),

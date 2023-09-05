@@ -24,10 +24,14 @@
 
 export class CliSettings {
 	public readonly settings: any;
-	constructor() {
-		this.settings =
-			require('balena-settings-client') as typeof import('balena-settings-client');
+	constructor(settings: typeof import('balena-settings-client')) {
+		this.settings = settings;
 	}
+
+	public static CreateCliSettings = async () => {
+		const settings = await import('balena-settings-client');
+		return new CliSettings(settings);
+	};
 
 	public get<T>(name: string): T {
 		return this.settings.get(name);
@@ -167,7 +171,7 @@ export async function getCachedUsername(): Promise<CachedUsername | undefined> {
 		// ignore
 	}
 	try {
-		const { username } = await getBalenaSdk().auth.getUserInfo();
+		const { username } = await (await getBalenaSdk()).auth.getUserInfo();
 		if (username) {
 			cachedUsername = { token, username };
 			await storage.set('cachedUsername', cachedUsername);

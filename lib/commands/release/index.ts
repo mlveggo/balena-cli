@@ -59,7 +59,7 @@ export default class ReleaseCmd extends Command {
 	public async run() {
 		const { args: params, flags: options } = await this.parse(ReleaseCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 		if (options.composition) {
 			await this.showComposition(params.commitOrId, balena);
 		} else {
@@ -114,6 +114,8 @@ export default class ReleaseCmd extends Command {
 		) as Dictionary<string>;
 		values['tags'] = tagStr;
 
-		console.log(getVisuals().table.vertical(values, [...fields, 'tags']));
+		console.log(
+			(await getVisuals()).table.vertical(values, [...fields, 'tags']),
+		);
 	}
 }

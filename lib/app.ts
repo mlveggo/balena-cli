@@ -57,13 +57,13 @@ async function checkNodeVersion() {
 }
 
 /** Setup balena-sdk options that are shared with imported packages */
-function setupBalenaSdkSharedOptions(settings: CliSettings) {
-	const BalenaSdk = require('balena-sdk') as typeof import('balena-sdk');
+const setupBalenaSdkSharedOptions = async (settings: CliSettings) => {
+	const BalenaSdk = await import('balena-sdk');
 	BalenaSdk.setSharedOptions({
 		apiUrl: settings.get<string>('apiUrl'),
 		dataDirectory: settings.get<string>('dataDirectory'),
 	});
-}
+};
 
 /**
  * Addresses the console warning:
@@ -71,9 +71,9 @@ function setupBalenaSdkSharedOptions(settings: CliSettings) {
  * leak detected. 11 error listeners added. Use emitter.setMaxListeners() to
  * increase limit
  */
-export function setMaxListeners(maxListeners: number) {
-	require('events').EventEmitter.defaultMaxListeners = maxListeners;
-}
+export const setMaxListeners = async (maxListeners: number) => {
+	(await import('events')).EventEmitter.defaultMaxListeners = maxListeners;
+};
 
 /** Selected CLI initialization steps */
 async function init() {
@@ -86,16 +86,16 @@ async function init() {
 	}
 	await checkNodeVersion();
 
-	const settings = new CliSettings();
+	const settings = await CliSettings.CreateCliSettings();
 
 	// Proxy setup should be done early on, before loading balena-sdk
 	await (await import('./utils/proxy')).setupGlobalHttpProxy(settings);
 
-	setupBalenaSdkSharedOptions(settings);
+	await setupBalenaSdkSharedOptions(settings);
 
 	// check for CLI updates once a day
 	if (!process.env.BALENARC_OFFLINE_MODE) {
-		(await import('./utils/update')).notify();
+		await (await import('./utils/update')).notify();
 	}
 }
 
@@ -107,7 +107,8 @@ async function oclifRun(command: string[], options: AppOptions) {
 		deprecationPromise = Promise.resolve();
 	} else {
 		const { DeprecationChecker } = await import('./deprecation');
-		const deprecationChecker = new DeprecationChecker(packageJSON.version);
+		const deprecationChecker =
+			await DeprecationChecker.CreateDeprecationChecker(packageJSON.version);
 		// warnAndAbortIfDeprecated uses previously cached data only
 		await deprecationChecker.warnAndAbortIfDeprecated();
 		// checkForNewReleasesIfNeeded may query the npm registry
@@ -141,7 +142,7 @@ async function oclifRun(command: string[], options: AppOptions) {
 		// the try/catch block above, execution does not get past the
 		// Promise.all() call below, but I don't understand why.
 		if (isEEXIT) {
-			(await import('./fast-boot')).stop();
+			await (await import('./fast-boot')).stop();
 		}
 	})(!options.noFlush);
 
@@ -168,7 +169,7 @@ export async function run(cliArgs = process.argv, options: AppOptions = {}) {
 		await init();
 
 		// Look for commands that have been removed and if so, exit with a notice
-		checkDeletedCommand(cliArgs.slice(2));
+		await checkDeletedCommand(cliArgs.slice(2));
 
 		const args = await preparseArgs(cliArgs);
 		await oclifRun(args, options);
@@ -176,7 +177,7 @@ export async function run(cliArgs = process.argv, options: AppOptions = {}) {
 		await (await import('./errors')).handleError(err);
 	} finally {
 		try {
-			(await import('./fast-boot')).stop();
+			await (await import('./fast-boot')).stop();
 		} catch (e) {
 			if (process.env.DEBUG) {
 				console.error(`[debug] Stopping fast-boot: ${e}`);

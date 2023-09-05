@@ -108,6 +108,6 @@ export default class OsBuildConfigCmd extends Command {
 			}
 		}
 
-		return getCliForm().run(questions, { override });
+		return (await getCliForm()).run(questions, { override });
 	}
 }

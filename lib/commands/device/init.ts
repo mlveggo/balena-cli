@@ -121,7 +121,7 @@ export default class DeviceInitCmd extends Command {
 		const { getApplication } = await import('../../utils/sdk');
 
 		const logger = await Command.getLogger();
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		// Get application and
 		const application = options.fleet

@@ -79,7 +79,7 @@ export default class TagSetCmd extends Command {
 	public async run() {
 		const { args: params, flags: options } = await this.parse(TagSetCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		// Check user has specified one of application/device/release
 		if (!options.fleet && !options.device && !options.release) {

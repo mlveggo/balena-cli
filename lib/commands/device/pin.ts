@@ -55,7 +55,7 @@ export default class DevicePinCmd extends Command {
 	public async run() {
 		const { args: params } = await this.parse(DevicePinCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		const device = await balena.models.device.get(params.uuid, {
 			$expand: {

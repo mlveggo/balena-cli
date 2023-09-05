@@ -55,7 +55,7 @@ export default class FleetPinCmd extends Command {
 	public async run() {
 		const { args: params } = await this.parse(FleetPinCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		const fleet = await balena.models.application.get(params.slug, {
 			$expand: {

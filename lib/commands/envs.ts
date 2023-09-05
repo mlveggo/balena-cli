@@ -121,7 +121,7 @@ export default class EnvsCmd extends Command {
 			throw new ExpectedError('Missing --fleet or --device option');
 		}
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		let fleetSlug: string | undefined = options.fleet
 			? await (await import('../utils/sdk')).getFleetSlug(balena, options.fleet)
@@ -187,7 +187,7 @@ export default class EnvsCmd extends Command {
 			this.log(JSON.stringify(mapped, null, 4));
 		} else {
 			this.log(
-				getVisuals().table.horizontal(
+				(await getVisuals()).table.horizontal(
 					_.sortBy(varArray, (v: SDK.EnvironmentVariableBase) => v.name),
 					fields,
 				),
@@ -228,9 +228,10 @@ async function getAppVars(
 	if (!fleetSlug) {
 		return appVars;
 	}
-	const vars = await sdk.models.application[
-		options.config ? 'configVar' : 'envVar'
-	].getAllByApplication(fleetSlug);
+	const vars =
+		await sdk.models.application[
+			options.config ? 'configVar' : 'envVar'
+		].getAllByApplication(fleetSlug);
 	fillInInfoFields(vars, fleetSlug);
 	appVars.push(...vars);
 	if (!options.config) {
@@ -269,9 +270,8 @@ async function getDeviceVars(
 	const printedUUID = options.json ? fullUUID : options.device!;
 	const deviceVars: EnvironmentVariableInfo[] = [];
 	if (options.config) {
-		const deviceConfigVars = await sdk.models.device.configVar.getAllByDevice(
-			fullUUID,
-		);
+		const deviceConfigVars =
+			await sdk.models.device.configVar.getAllByDevice(fullUUID);
 		fillInInfoFields(deviceConfigVars, fleetSlug, printedUUID);
 		deviceVars.push(...deviceConfigVars);
 	} else {
@@ -296,9 +296,8 @@ async function getDeviceVars(
 		fillInInfoFields(deviceServiceVars, fleetSlug, printedUUID);
 		deviceVars.push(...deviceServiceVars);
 
-		const deviceEnvVars = await sdk.models.device.envVar.getAllByDevice(
-			fullUUID,
-		);
+		const deviceEnvVars =
+			await sdk.models.device.envVar.getAllByDevice(fullUUID);
 		fillInInfoFields(deviceEnvVars, fleetSlug, printedUUID);
 		deviceVars.push(...deviceEnvVars);
 	}

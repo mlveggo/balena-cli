@@ -154,9 +154,8 @@ export class NockMock {
 		}
 	}
 
-	protected handleUnexpectedRequest(req: any) {
-		const { interceptorServerPort } =
-			require('./proxy-server') as typeof import('./proxy-server');
+	protected async handleUnexpectedRequest(req: any) {
+		const { interceptorServerPort } = await import('./proxy-server');
 		const o = req.options || {};
 		const u = o.uri || {};
 		const method = req.method;

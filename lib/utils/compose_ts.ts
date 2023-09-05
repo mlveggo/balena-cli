@@ -31,7 +31,6 @@ import type * as MultiBuild from '@balena/compose/dist/multibuild';
 import * as semver from 'semver';
 import type { Duplex, Readable } from 'stream';
 import type { Pack } from 'tar-stream';
-
 import { ExpectedError } from '../errors';
 import {
 	BuiltImage,
@@ -44,6 +43,7 @@ import type { DeviceInfo } from './device/api';
 import { getBalenaSdk, getChalk, stripIndent } from './lazy';
 import Logger = require('./logger');
 import { exists } from './which';
+import { ResolvableReturnType } from 'balena-sdk/typings/utils';
 
 const allowedContractTypes = ['sw.application', 'sw.block'];
 
@@ -359,16 +359,17 @@ async function startRenderer({
 }): Promise<Renderer> {
 	let renderer: Renderer;
 	if (inlineLogs) {
-		renderer = new (await import('./compose')).BuildProgressInline(
+		renderer = await (
+			await import('./compose')
+		).BuildProgressInline.CreateBuildProgressInline(
 			logger.streams['build'],
 			imageDescriptors,
 		);
 	} else {
 		const tty = (await import('./tty'))(process.stdout);
-		renderer = new (await import('./compose')).BuildProgressUI(
-			tty,
-			imageDescriptors,
-		);
+		renderer = await (
+			await import('./compose')
+		).BuildProgressUI.CreateBuildProgressUI(await tty, imageDescriptors);
 	}
 	renderer.start();
 	return renderer;
@@ -400,9 +401,9 @@ async function installQemuIfNeeded({
 		logger.logInfo('Emulation is enabled');
 		// Copy qemu into all build contexts
 		await Promise.all(
-			imageDescriptors.map(function (d) {
+			imageDescriptors.map(async function (d) {
 				if (isBuildConfig(d.image)) {
-					return qemu.copyQemu(
+					return await qemu.copyQemu(
 						path.join(projectPath, d.image.context || '.'),
 						arch,
 					);
@@ -473,7 +474,7 @@ async function qemuTransposeBuildStream({
 	projectPath: string;
 }): Promise<TransposeOptions> {
 	const qemu = await import('./qemu');
-	const binPath = qemu.qemuPathInContext(
+	const binPath = await qemu.qemuPathInContext(
 		path.join(projectPath, task.context ?? ''),
 	);
 	if (task.buildStream == null) {
@@ -514,7 +515,7 @@ async function setTaskProgressHooks({
 	// Get the service-specific log stream
 	const logStream = renderer.streams[task.serviceName];
 	task.logBuffer = [];
-	const captureStream = buildLogCapture(task.external, task.logBuffer);
+	const captureStream = await buildLogCapture(task.external, task.logBuffer);
 
 	if (task.external) {
 		// External image -- there's no build to be performed,
@@ -522,9 +523,9 @@ async function setTaskProgressHooks({
 		captureStream.pipe(logStream);
 		task.progressHook = pullProgressAdapter(captureStream);
 	} else {
-		task.streamHook = function (stream) {
+		task.streamHook = async function (stream) {
 			let rawStream;
-			stream = createLogStream(stream);
+			stream = await createLogStream(stream);
 			if (transposeOptions) {
 				const buildThroughStream =
 					transpose.getBuildThroughStream(transposeOptions);
@@ -536,9 +537,9 @@ async function setTaskProgressHooks({
 			// where we're given objects. capture these strings as they come
 			// before we parse them.
 			return rawStream
-				.pipe(dropEmptyLinesStream())
+				.pipe(await dropEmptyLinesStream())
 				.pipe(captureStream)
-				.pipe(buildProgressAdapter(!!inlineLogs))
+				.pipe(await buildProgressAdapter(!!inlineLogs))
 				.pipe(logStream);
 		};
 	}
@@ -565,8 +566,7 @@ async function inspectBuiltImages({
 			}),
 		),
 	);
-
-	const humanize = require('humanize');
+	const humanize = await import('humanize');
 	const summaryMsgByService: { [serviceName: string]: string } = {};
 	for (const image of images) {
 		summaryMsgByService[image.serviceName] = `Image size: ${humanize.filesize(
@@ -660,7 +660,7 @@ async function loadBuildMetatada(
 		if (metadataPath.endsWith('json')) {
 			buildMetadata = JSON.parse(rawString);
 		} else {
-			buildMetadata = require('js-yaml').load(rawString);
+			buildMetadata = jsyaml.load(rawString) as MultiBuild.ParsedBalenaYml;
 		}
 	} catch (err) {
 		throw new ExpectedError(
@@ -686,12 +686,12 @@ export async function getServiceDirsFromComposition(
 	const serviceDirs: Dictionary<string> = {};
 	if (!composition) {
 		const [, composeStr] = await resolveProject(
-			Logger.getLogger(),
+			await Logger.getLogger(),
 			sourceDir,
 			true,
 		);
 		if (composeStr) {
-			composition = createProject(sourceDir, composeStr).composition;
+			composition = (await createProject(sourceDir, composeStr)).composition;
 		}
 	}
 	if (composition?.services) {
@@ -764,7 +764,7 @@ export async function tarDirectory(
 
 	let readFile: (file: string) => Promise<Buffer>;
 	if (process.platform === 'win32') {
-		const { readFileWithEolConversion } = require('./eol-conversion');
+		const { readFileWithEolConversion } = await import('./eol-conversion');
 		readFile = (file) => readFileWithEolConversion(file, convertEol);
 	} else {
 		readFile = fs.readFile;
@@ -774,7 +774,11 @@ export async function tarDirectory(
 	const serviceDirs = await getServiceDirsFromComposition(dir, composition);
 	const { filteredFileList, dockerignoreFiles } =
 		await filterFilesWithDockerignore(dir, multiDockerignore, serviceDirs);
-	printDockerignoreWarn(dockerignoreFiles, serviceDirs, multiDockerignore);
+	await printDockerignoreWarn(
+		dockerignoreFiles,
+		serviceDirs,
+		multiDockerignore,
+	);
 	for (const fileStats of filteredFileList) {
 		pack.entry(
 			{
@@ -800,13 +804,13 @@ export async function tarDirectory(
  * @param serviceDirsByService Map of service names to service subdirectories
  * @param multiDockerignore Whether --multi-dockerignore (-m) was provided
  */
-function printDockerignoreWarn(
+async function printDockerignoreWarn(
 	dockerignoreFiles: Array<import('./ignore').FileStats>,
 	serviceDirsByService: Dictionary<string>,
 	multiDockerignore: boolean,
 ) {
 	let rootDockerignore: import('./ignore').FileStats | undefined;
-	const logger = Logger.getLogger();
+	const logger = await Logger.getLogger();
 	const relPrefix = '.' + path.sep;
 	const serviceDirs = Object.values(serviceDirsByService || {});
 	// compute a list of unused .dockerignore files
@@ -874,7 +878,7 @@ function printDockerignoreWarn(
 		}
 	}
 	if (msg.length) {
-		const { warnify } = require('./messages') as typeof import('./messages');
+		const { warnify } = await import('./messages');
 		logFunc.call(logger, ' \n' + warnify(msg.join('\n'), ''));
 	}
 }
@@ -945,7 +949,7 @@ async function parseRegistrySecrets(
 		const multiBuild = await import('@balena/compose/dist/multibuild');
 		const registrySecrets =
 			new multiBuild.RegistrySecretValidator().validateRegistrySecrets(
-				isYaml ? require('js-yaml').load(raw) : JSON.parse(raw),
+				isYaml ? jsyaml.load(raw) : JSON.parse(raw),
 			);
 		multiBuild.addCanonicalDockerHubEntry(registrySecrets);
 		return registrySecrets;
@@ -1224,7 +1228,7 @@ async function getTokenForPreviousRepos(
 ): Promise<string> {
 	logger.logDebug('Authorizing push...');
 	const { authorizePush, getPreviousRepos } = await import('./compose');
-	const sdk = getBalenaSdk();
+	const sdk = await getBalenaSdk();
 	const previousRepos = await getPreviousRepos(sdk, logger, appId);
 
 	const token = await authorizePush(
@@ -1253,8 +1257,8 @@ async function pushAndUpdateServiceImages(
 	const opts = { authconfig: { registrytoken: token } };
 	const progress = new DockerProgress({ docker });
 	const renderer = pushProgressRenderer(
-		tty,
-		getChalk().blue('[Push]') + '    ',
+		await tty,
+		(await getChalk()).blue('[Push]') + '    ',
 	);
 	const reporters = progress.aggregateProgress(images.length, renderer);
 
@@ -1312,15 +1316,15 @@ async function pushAndUpdateServiceImages(
 			serviceImage.status = 'failed';
 			throw error;
 		} finally {
-			await afterEach(serviceImage, props);
+			afterEach(serviceImage, props);
 		}
 	};
 
-	tty.hideCursor();
+	(await tty).hideCursor();
 	try {
 		await Promise.all(images.map(inspectAndPushImage));
 	} finally {
-		tty.showCursor();
+		(await tty).showCursor();
 	}
 }
 
@@ -1369,7 +1373,7 @@ export async function deployProject(
 	const { createRelease, tagServiceImages } = await import('./compose');
 	const tty = (await import('./tty'))(process.stdout);
 
-	const prefix = getChalk().cyan('[Info]') + '    ';
+	const prefix = (await getChalk()).cyan('[Info]') + '    ';
 	const spinner = createSpinner();
 
 	const contractPath = path.join(projectPath, 'balena.yml');
@@ -1381,7 +1385,7 @@ export async function deployProject(
 	}
 
 	const $release = await runSpinner(
-		tty,
+		await tty,
 		spinner,
 		`${prefix}Creating release...`,
 		() =>
@@ -1432,12 +1436,17 @@ export async function deployProject(
 			);
 		}
 	} finally {
-		await runSpinner(tty, spinner, `${prefix}Saving release...`, async () => {
-			release.end_timestamp = new Date();
-			if (release.id != null) {
-				await releaseMod.updateRelease(pineClient, release.id, release);
-			}
-		});
+		await runSpinner(
+			await tty,
+			spinner,
+			`${prefix}Saving release...`,
+			async () => {
+				release.end_timestamp = new Date();
+				if (release.id != null) {
+					await releaseMod.updateRelease(pineClient, release.id, release);
+				}
+			},
+		);
 	}
 	return release;
 }
@@ -1449,17 +1458,17 @@ export function createSpinner() {
 }
 
 async function runSpinner<T>(
-	tty: ReturnType<typeof import('./tty')>,
+	tty: ResolvableReturnType<typeof import('./tty')>,
 	spinner: () => string,
 	msg: string,
 	fn: () => Promise<T>,
 ): Promise<T> {
-	const runloop = createRunLoop(function () {
+	const runloop = createRunLoop(async function () {
 		tty.clearLine();
 		tty.writeLine(`${msg} ${spinner()}`);
 		tty.cursorUp();
 	});
-	runloop.onEnd = function () {
+	runloop.onEnd = async function () {
 		tty.clearLine();
 		tty.writeLine(msg);
 	};
@@ -1520,14 +1529,15 @@ function isContract(obj: any): obj is Dictionary<any> {
 	return obj?.type && allowedContractTypes.includes(obj.type);
 }
 
-function createLogStream(input: Readable) {
-	const split = require('split') as typeof import('split');
-	const stripAnsi = require('strip-ansi-stream');
+async function createLogStream(input: Readable) {
+	const split = await import('split');
+	// @ts-expect-error no typings for strip-ansi-stream, implicitly any
+	const stripAnsi = await import('strip-ansi-stream');
 	return input.pipe<Duplex>(stripAnsi()).pipe(split());
 }
 
-function dropEmptyLinesStream() {
-	const through = require('through2') as typeof import('through2');
+async function dropEmptyLinesStream() {
+	const through = await import('through2');
 	return through(function (data, _enc, cb) {
 		const str = data.toString('utf-8');
 		if (str.trim()) {
@@ -1537,9 +1547,8 @@ function dropEmptyLinesStream() {
 	});
 }
 
-function buildLogCapture(objectMode: boolean, buffer: string[]) {
-	const through = require('through2') as typeof import('through2');
-
+async function buildLogCapture(objectMode: boolean, buffer: string[]) {
+	const through = await import('through2');
 	return through({ objectMode }, function (data, _enc, cb) {
 		// data from pull stream
 		if (data.error) {
@@ -1558,8 +1567,8 @@ function buildLogCapture(objectMode: boolean, buffer: string[]) {
 	});
 }
 
-function buildProgressAdapter(inline: boolean) {
-	const through = require('through2') as typeof import('through2');
+async function buildProgressAdapter(inline: boolean) {
+	const through = await import('through2');
 
 	const stepRegex = /^\s*Step\s+(\d+)\/(\d+)\s*: (.+)$/;
 

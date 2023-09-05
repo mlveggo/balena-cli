@@ -60,7 +60,7 @@ export default class FleetCmd extends Command {
 
 		const { getApplication } = await import('../../utils/sdk');
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		const application = await getApplication(balena, params.fleet, {
 			$expand: {

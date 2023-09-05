@@ -67,7 +67,9 @@ export default class EnvRenameCmd extends Command {
 
 		await Command.checkLoggedIn();
 
-		await getBalenaSdk().pine.patch({
+		await (
+			await getBalenaSdk()
+		).pine.patch({
 			resource: ec.getVarResourceName(opt.config, opt.device, opt.service),
 			id: params.id,
 			body: {

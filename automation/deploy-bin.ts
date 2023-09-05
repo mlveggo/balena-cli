@@ -41,7 +41,11 @@ export async function createGitHubRelease() {
 			assets: finalReleaseAssets[process.platform],
 		}),
 	);
-	console.log(`Release ${version} successful: ${ghRelease.html_url}`);
+	console.log(
+		`Release ${version} successful: ${
+			(ghRelease as { html_url: any; [key: string]: any }).html_url
+		}`,
+	);
 }
 
 /**
@@ -59,15 +63,11 @@ export async function release() {
 }
 
 /** Return a cached Octokit instance, creating a new one as needed. */
-const getOctokit = _.once(function () {
-	const Octokit = (
-		require('@octokit/rest') as typeof import('@octokit/rest')
-	).Octokit.plugin(
-		(
-			require('@octokit/plugin-throttling') as typeof import('@octokit/plugin-throttling')
-		).throttling,
-	);
-	return new Octokit({
+const getOctokit = _.once(async function () {
+	const { Octokit } = await import('@octokit/rest');
+	const { throttling } = await import('@octokit/plugin-throttling');
+	const octo = Octokit.plugin(throttling);
+	return new octo({
 		auth: GITHUB_TOKEN,
 		throttle: {
 			onRateLimit: (retryAfter: number, options: any) => {
@@ -103,16 +103,15 @@ const getOctokit = _.once(function () {
  * 'pages' is the total number of pages, and 'ordinal' is the ordinal number
  * (3rd, 4th, 5th...) of the first item in the current page.
  */
-function getPageNumbers(
+const getPageNumbers = async (
 	response: any,
 	perPageDefault: number,
-): { page: number; pages: number; ordinal: number } {
+): Promise<{ page: number; pages: number; ordinal: number }> => {
 	const res = { page: 1, pages: 1, ordinal: 1 };
 	if (!response.headers.link) {
 		return res;
 	}
-	const parse =
-		require('parse-link-header') as typeof import('parse-link-header');
+	const { default: parse } = await import('parse-link-header');
 	const parsed = parse(response.headers.link);
 	if (parsed == null) {
 		throw new Error(`Failed to parse link header: '${response.headers.link}'`);
@@ -132,7 +131,7 @@ function getPageNumbers(
 	}
 	res.ordinal = (res.page - 1) * perPage + 1;
 	return res;
-}
+};
 
 /**
  * Iterate over every GitHub release in the given owner/repo, check whether
@@ -154,7 +153,7 @@ async function updateGitHubReleaseDescriptions(
 ) {
 	const perPage = 30;
 	const octokit = getOctokit();
-	const options = await octokit.repos.listReleases.endpoint.merge({
+	const options = (await octokit).repos.listReleases.endpoint.merge({
 		owner,
 		repo,
 		per_page: perPage,
@@ -162,12 +161,14 @@ async function updateGitHubReleaseDescriptions(
 	let errCount = 0;
 	type Release =
 		import('@octokit/rest').RestEndpointMethodTypes['repos']['listReleases']['response']['data'][0];
-	for await (const response of octokit.paginate.iterator<Release>(options)) {
+	for await (const response of (await octokit).paginate.iterator<Release>(
+		options,
+	)) {
 		const {
 			page: thisPage,
 			pages: totalPages,
 			ordinal,
-		} = getPageNumbers(response, perPage);
+		} = await getPageNumbers(response, perPage);
 		let i = 0;
 		for (const cliRelease of response.data) {
 			const prefix = `[#${ordinal + i++} pg ${thisPage}/${totalPages}]`;
@@ -205,7 +206,7 @@ async function updateGitHubReleaseDescriptions(
 					`${prefix} updating release "${cliRelease.tag_name}" (${cliRelease.id}) old body="${oldBodyPreview}"`,
 				);
 				try {
-					await octokit.repos.updateRelease(updatedRelease);
+					await (await octokit).repos.updateRelease(updatedRelease);
 				} catch (err) {
 					console.error(
 						`${skipMsg}: Error: ${err.message} (count=${++errCount})`,

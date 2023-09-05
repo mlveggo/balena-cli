@@ -68,7 +68,7 @@ export default class DevicesCmd extends Command {
 	public async run() {
 		const { flags: options } = await this.parse(DevicesCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 		const devicesOptions = {
 			...devicesSelectFields,
 			...expandForAppName,
@@ -121,7 +121,7 @@ export default class DevicesCmd extends Command {
 		} else {
 			const _ = await import('lodash');
 			console.log(
-				getVisuals().table.horizontal(
+				(await getVisuals()).table.horizontal(
 					devices.map((dev) => _.mapValues(dev, (val) => val ?? 'N/a')),
 					fields,
 				),

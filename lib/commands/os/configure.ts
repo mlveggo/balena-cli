@@ -184,7 +184,7 @@ export default class OsConfigureCmd extends Command {
 		let device;
 		let deviceTypeSlug: string;
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 		if (options.device) {
 			device = (await balena.models.device.get(options.device, {
 				$expand: {
@@ -440,7 +440,7 @@ async function askQuestionsForDeviceType(
 		extraOpts = { override: defaultAnswers };
 	}
 
-	return getCliForm().run(questions, extraOpts);
+	return (await getCliForm()).run(questions, extraOpts);
 }
 
 /**

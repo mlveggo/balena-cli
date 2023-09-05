@@ -59,11 +59,10 @@ export default class DeviceOsUpdateCmd extends Command {
 	public static authenticated = true;
 
 	public async run() {
-		const { args: params, flags: options } = await this.parse(
-			DeviceOsUpdateCmd,
-		);
+		const { args: params, flags: options } =
+			await this.parse(DeviceOsUpdateCmd);
 
-		const sdk = getBalenaSdk();
+		const sdk = await getBalenaSdk();
 
 		// Get device info
 		const { uuid, is_of__device_type, os_version, os_variant } =
@@ -107,7 +106,9 @@ export default class DeviceOsUpdateCmd extends Command {
 				);
 			}
 		} else {
-			targetOsVersion = await getCliForm().ask({
+			targetOsVersion = await (
+				await getCliForm()
+			).ask({
 				message: 'Target OS version',
 				type: 'list',
 				choices: hupVersionInfo.versions.map((version) => ({

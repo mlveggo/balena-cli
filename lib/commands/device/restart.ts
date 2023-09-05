@@ -69,8 +69,8 @@ export default class DeviceRestartCmd extends Command {
 	public async run() {
 		const { args: params, flags: options } = await this.parse(DeviceRestartCmd);
 
-		const balena = getBalenaSdk();
-		const ux = getCliUx();
+		const balena = await getBalenaSdk();
+		const ux = await getCliUx();
 
 		const deviceUuids = params.uuid.split(',');
 		const serviceNames = options.service?.split(',');

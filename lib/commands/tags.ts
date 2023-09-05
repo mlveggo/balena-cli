@@ -61,7 +61,7 @@ export default class TagsCmd extends Command {
 	public async run() {
 		const { flags: options } = await this.parse(TagsCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		// Check user has specified one of application/device/release
 		if (!options.fleet && !options.device && !options.release) {
@@ -95,7 +95,9 @@ export default class TagsCmd extends Command {
 			throw new ExpectedError('No tags found');
 		}
 
-		console.log(getVisuals().table.horizontal(tags, ['tag_key', 'value']));
+		console.log(
+			(await getVisuals()).table.horizontal(tags, ['tag_key', 'value']),
+		);
 	}
 
 	protected missingResourceMessage = stripIndent`

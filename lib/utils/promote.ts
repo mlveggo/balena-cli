@@ -94,7 +94,7 @@ async function execCommand(
 	msg: string,
 ): Promise<void> {
 	const { Writable } = await import('stream');
-	const visuals = getVisuals();
+	const visuals = await getVisuals();
 
 	const spinner = new visuals.Spinner(`[${deviceIp}] Connecting...`);
 	const innerSpinner = spinner.spinner;
@@ -168,7 +168,7 @@ const dockerTimeout = 2000;
 
 async function selectLocalBalenaOsDevice(timeout = 4000): Promise<string> {
 	const { discoverLocalBalenaOsDevices } = await import('../utils/discover');
-	const { SpinnerPromise } = getVisuals();
+	const { SpinnerPromise } = await getVisuals();
 	const devices = await new SpinnerPromise({
 		promise: discoverLocalBalenaOsDevices(timeout),
 		startMessage: 'Discovering local balenaOS devices..',
@@ -202,7 +202,7 @@ async function selectLocalBalenaOsDevice(timeout = 4000): Promise<string> {
 		throw new Error('Could not find any local balenaOS devices');
 	}
 
-	return getCliForm().ask({
+	return (await getCliForm()).ask({
 		message: 'select a device',
 		type: 'list',
 		default: devices[0].address,
@@ -235,7 +235,7 @@ async function selectAppFromList(
 
 	// Present a list to the user which shows the fully qualified fleet
 	// name (user/fleetname) and allows them to select.
-	return selectFromList(
+	return await selectFromList(
 		'Select fleet',
 		_.map(applications, (app) => {
 			return { name: app.slug, ...app };
@@ -394,10 +394,14 @@ async function createApplication(
 		throw new sdk.errors.BalenaNotLoggedIn();
 	}
 
+	// eslint-disable-next-line no-async-promise-executor
 	const applicationName = await new Promise<string>(async (resolve, reject) => {
+		// eslint-disable-next-line no-constant-condition
 		while (true) {
 			try {
-				const appName = await getCliForm().ask({
+				const appName = await (
+					await getCliForm()
+				).ask({
 					message: 'Enter a name for your new fleet:',
 					type: 'input',
 					default: name,
@@ -412,7 +416,7 @@ async function createApplication(
 					});
 					// TODO: This is the only example in the codebase where `printErrorMessage()`
 					//  is called directly.  Consider refactoring.
-					printErrorMessage(
+					await printErrorMessage(
 						'You already have a fleet with that name; please choose another.',
 					);
 					continue;
@@ -459,7 +463,7 @@ async function generateApplicationConfig(
 	};
 
 	const values = {
-		...(opts ? await getCliForm().run(opts, { override }) : {}),
+		...(opts ? await (await getCliForm()).run(opts, { override }) : {}),
 		...options,
 	};
 

@@ -24,16 +24,16 @@ import Logger = require('./logger');
 export const QEMU_VERSION = 'v7.0.0+balena1';
 export const QEMU_BIN_NAME = 'qemu-execve';
 
-export function qemuPathInContext(context: string) {
-	const path = require('path') as typeof import('path');
+export async function qemuPathInContext(context: string) {
+	const path = await import('path');
 	const binDir = path.join(context, '.balena');
 	const binPath = path.join(binDir, QEMU_BIN_NAME);
 	return path.relative(context, binPath);
 }
 
-export function copyQemu(context: string, arch: string) {
-	const path = require('path') as typeof import('path');
-	const fs = require('fs') as typeof import('fs');
+export async function copyQemu(context: string, arch: string) {
+	const path = await import('path');
+	const fs = await import('fs');
 	// Create a hidden directory in the build context, containing qemu
 	const binDir = path.join(context, '.balena');
 	const binPath = path.join(binDir, QEMU_BIN_NAME);
@@ -47,7 +47,7 @@ export function copyQemu(context: string, arch: string) {
 			}
 			throw err;
 		})
-		.then(() => getQemuPath(arch))
+		.then(async () => await getQemuPath(arch))
 		.then(
 			(qemu) =>
 				new Promise(function (resolve, reject) {
@@ -65,11 +65,11 @@ export function copyQemu(context: string, arch: string) {
 		.then(() => path.relative(context, binPath));
 }
 
-export const getQemuPath = function (balenaArch: string) {
+export const getQemuPath = async function (balenaArch: string) {
 	const qemuArch = balenaArchToQemuArch(balenaArch);
-	const balena = getBalenaSdk();
-	const path = require('path') as typeof import('path');
-	const { promises: fs } = require('fs') as typeof import('fs');
+	const balena = await getBalenaSdk();
+	const path = await import('path');
+	const { promises: fs } = await import('fs');
 
 	return balena.settings.get('binDirectory').then((binDir) =>
 		fs

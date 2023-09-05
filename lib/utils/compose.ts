@@ -30,8 +30,9 @@ import type {
 import { getChalk } from './lazy';
 import Logger = require('./logger');
 import { ProgressCallback } from 'docker-progress';
+import { ResolvableReturnType } from 'balena-sdk/typings/utils';
 
-export function generateOpts(options: {
+export async function generateOpts(options: {
 	source?: string;
 	projectName?: string;
 	nologs: boolean;
@@ -40,8 +41,8 @@ export function generateOpts(options: {
 	'multi-dockerignore': boolean;
 	'noparent-check': boolean;
 }): Promise<ComposeOpts> {
-	const { promises: fs } = require('fs') as typeof import('fs');
-	return fs.realpath(options.source || '.').then((projectPath) => ({
+	const fs = await import('fs');
+	return fs.promises.realpath(options.source || '.').then((projectPath) => ({
 		projectName: options.projectName,
 		projectPath,
 		inlineLogs: !options.nologs,
@@ -56,36 +57,39 @@ export function generateOpts(options: {
  * - composePath: the *absolute* path to the directory containing the compose file
  *  - composeStr: the contents of the compose file, as a string
  */
-export function createProject(
+export async function createProject(
 	composePath: string,
 	composeStr: string,
 	projectName = '',
 	imageTag = '',
-): ComposeProject {
-	const yml = require('js-yaml') as typeof import('js-yaml');
-	const compose =
-		require('@balena/compose/dist/parse') as typeof import('@balena/compose/dist/parse');
-
+): Promise<ComposeProject> {
 	// both methods below may throw.
+	const yml = await import('js-yaml');
+	const compose = await import('@balena/compose/dist/parse');
 	const rawComposition = yml.load(composeStr);
 	const composition = compose.normalize(rawComposition);
 
 	projectName ||= path.basename(composePath);
 
-	const descriptors = compose.parse(composition).map(function (descr) {
-		// generate an image name based on the project and service names
-		// if one is not given and the service requires a build
-		if (
-			typeof descr.image !== 'string' &&
-			descr.image.context != null &&
-			descr.image.tag == null
-		) {
-			const { makeImageName } =
-				require('./compose_ts') as typeof import('./compose_ts');
-			descr.image.tag = makeImageName(projectName, descr.serviceName, imageTag);
-		}
-		return descr;
-	});
+	const descriptors = await Promise.all(
+		compose.parse(composition).map(async function (descr) {
+			// generate an image name based on the project and service names
+			// if one is not given and the service requires a build
+			if (
+				typeof descr.image !== 'string' &&
+				descr.image.context != null &&
+				descr.image.tag == null
+			) {
+				const { makeImageName } = await import('./compose_ts');
+				descr.image.tag = makeImageName(
+					projectName,
+					descr.serviceName,
+					imageTag,
+				);
+			}
+			return descr;
+		}),
+	);
 	return {
 		path: composePath,
 		name: projectName,
@@ -104,11 +108,9 @@ export const createRelease = async function (
 	semver?: string,
 	contract?: string,
 ): Promise<Release> {
-	const _ = require('lodash') as typeof import('lodash');
-	const crypto = require('crypto') as typeof import('crypto');
-	const releaseMod =
-		require('@balena/compose/dist/release') as typeof import('@balena/compose/dist/release');
-
+	const _ = await import('lodash');
+	const crypto = await import('crypto');
+	const releaseMod = await import('@balena/compose/dist/release');
 	const client = releaseMod.createClient({ apiEndpoint, auth });
 
 	const { release, serviceImages } = await releaseMod.create({
@@ -183,13 +185,13 @@ export const tagServiceImages = (
 		}),
 	);
 
-export const getPreviousRepos = (
+export const getPreviousRepos = async (
 	sdk: SDK.BalenaSDK,
 	logger: Logger,
 	appID: number,
-): Promise<string[]> =>
-	sdk.pine
-		.get<SDK.Release>({
+): Promise<string[]> => {
+	try {
+		const release = await sdk.pine.get<SDK.Release>({
 			resource: 'release',
 			options: {
 				$select: 'id',
@@ -206,33 +208,33 @@ export const getPreviousRepos = (
 				$orderby: 'id desc',
 				$top: 1,
 			},
-		})
-		.then(function (release) {
-			// grab all images from the latest release, return all image locations in the registry
-			if (release.length > 0) {
-				const images = release[0].contains__image as Array<{
-					image: [SDK.Image];
-				}>;
-				const { getRegistryAndName } =
-					require('@balena/compose/dist/multibuild') as typeof import('@balena/compose/dist/multibuild');
-				return Promise.all(
-					images.map(function (d) {
-						const imageName = d.image[0].is_stored_at__image_location || '';
-						const registry = getRegistryAndName(imageName);
-						logger.logDebug(
-							`Requesting access to previously pushed image repo (${registry.imageName})`,
-						);
-						return registry.imageName;
-					}),
-				);
-			} else {
-				return [];
-			}
-		})
-		.catch((e) => {
-			logger.logDebug(`Failed to access previously pushed image repo: ${e}`);
-			return [];
 		});
+		// grab all images from the latest release, return all image locations in the registry
+		if (release.length > 0) {
+			const images = release[0].contains__image as Array<{
+				image: [SDK.Image];
+			}>;
+			const { getRegistryAndName } = await import(
+				'@balena/compose/dist/multibuild'
+			);
+			return Promise.all(
+				images.map(function (d) {
+					const imageName = d.image[0].is_stored_at__image_location || '';
+					const registry = getRegistryAndName(imageName);
+					logger.logDebug(
+						`Requesting access to previously pushed image repo (${registry.imageName})`,
+					);
+					return registry.imageName;
+				}),
+			);
+		} else {
+			return [];
+		}
+	} catch (e) {
+		logger.logDebug(`Failed to access previously pushed image repo: ${e}`);
+		return [];
+	}
+};
 
 export const authorizePush = function (
 	sdk: SDK.BalenaSDK,
@@ -261,8 +263,11 @@ export const authorizePush = function (
 
 // utilities
 
-const renderProgressBar = function (percentage: number, stepCount: number) {
-	const _ = require('lodash') as typeof import('lodash');
+const renderProgressBar = async function (
+	percentage: number,
+	stepCount: number,
+) {
+	const _ = await import('lodash');
 	percentage = _.clamp(percentage, 0, 100);
 	const barCount = Math.floor((stepCount * percentage) / 100);
 	const spaceCount = stepCount - barCount;
@@ -271,18 +276,18 @@ const renderProgressBar = function (percentage: number, stepCount: number) {
 };
 
 export const pushProgressRenderer = function (
-	tty: ReturnType<typeof import('./tty')>,
+	tty: ResolvableReturnType<typeof import('./tty')>,
 	prefix: string,
 ): ProgressCallback & { end: () => void } {
-	const fn: ProgressCallback & { end: () => void } = function (e) {
+	const fn: ProgressCallback & { end: () => void } = async function (e) {
 		const { error, percentage } = e;
 		if (error != null) {
 			throw new Error(error);
 		}
-		const bar = renderProgressBar(percentage, 40);
+		const bar = await renderProgressBar(percentage, 40);
 		return tty.replaceLine(`${prefix}${bar}\r`);
 	};
-	fn.end = () => {
+	fn.end = async () => {
 		tty.clearLine();
 	};
 	return fn;
@@ -312,15 +317,17 @@ export class BuildProgressUI implements Renderer {
 	private _lineWidths: number[] = [];
 
 	constructor(
-		tty: ReturnType<typeof import('./tty')>,
+		_: typeof import('lodash'),
+		through: typeof import('through2'),
+		_spinner: typeof import('./compose_ts'),
+		chalk: ResolvableReturnType<typeof getChalk>,
+		tty: ResolvableReturnType<typeof import('./tty')>,
 		descriptors: ImageDescriptor[],
 	) {
 		this._handleEvent = this._handleEvent.bind(this);
 		this.start = this.start.bind(this);
 		this.end = this.end.bind(this);
 		this._display = this._display.bind(this);
-		const _ = require('lodash') as typeof import('lodash');
-		const through = require('through2') as typeof import('through2');
 
 		const eventHandler = this._handleEvent;
 		const services = _.map(descriptors, 'serviceName');
@@ -343,7 +350,7 @@ export class BuildProgressUI implements Renderer {
 		// Logger magically prefixes the log line with [Build] etc., but it doesn't
 		// work well with the spinner we're also showing. Manually build the prefix
 		// here and bypass the logger.
-		const prefix = getChalk().blue('[Build]') + '   ';
+		const prefix = chalk.blue('[Build]') + '   ';
 
 		const offset = 10; // account for escape sequences inserted for colouring
 		this._prefixWidth =
@@ -352,12 +359,21 @@ export class BuildProgressUI implements Renderer {
 
 		this._ended = false;
 		this._cancelled = false;
-		this._spinner = (
-			require('./compose_ts') as typeof import('./compose_ts')
-		).createSpinner();
+		this._spinner = _spinner.createSpinner();
 
 		this.streams = streams;
 	}
+
+	public static CreateBuildProgressUI = async (
+		tty: ResolvableReturnType<typeof import('./tty')>,
+		descriptors: ImageDescriptor[],
+	) => {
+		const _ = await import('lodash');
+		const through = await import('through2');
+		const _spinner = await import('./compose_ts');
+		const chalk = await getChalk();
+		return new BuildProgressUI(_, through, _spinner, chalk, tty, descriptors);
+	};
 
 	_handleEvent(
 		service: string,
@@ -366,18 +382,16 @@ export class BuildProgressUI implements Renderer {
 		this._serviceToDataMap[service] = event;
 	}
 
-	start() {
+	async start() {
 		this._tty.hideCursor();
 		this._services.forEach((service) => {
 			this.streams[service].write({ status: 'Preparing...' });
 		});
-		this._runloop = (
-			require('./compose_ts') as typeof import('./compose_ts')
-		).createRunLoop(this._display);
+		this._runloop = (await import('./compose_ts')).createRunLoop(this._display);
 		this._startTime = Date.now();
 	}
 
-	end(summary?: Dictionary<string>) {
+	async end(summary?: Dictionary<string>) {
 		if (this._ended) {
 			return;
 		}
@@ -386,15 +400,15 @@ export class BuildProgressUI implements Renderer {
 		this._runloop = undefined;
 
 		this._clear();
-		this._renderStatus(true);
-		this._renderSummary(summary ?? this._getServiceSummary());
+		await this._renderStatus(true);
+		await this._renderSummary(summary ?? (await this._getServiceSummary()));
 		this._tty.showCursor();
 	}
 
-	_display() {
+	async _display() {
 		this._clear();
-		this._renderStatus();
-		this._renderSummary(this._getServiceSummary());
+		await this._renderStatus();
+		await this._renderSummary(await this._getServiceSummary());
 		this._tty.cursorUp(this._services.length + 1); // for status line
 	}
 
@@ -403,19 +417,19 @@ export class BuildProgressUI implements Renderer {
 		this._maxLineWidth = this._tty.currentWindowSize().width;
 	}
 
-	_getServiceSummary() {
-		const _ = require('lodash') as typeof import('lodash');
+	async _getServiceSummary() {
+		const _ = await import('lodash');
 
 		const services = this._services;
 		const serviceToDataMap = this._serviceToDataMap;
 
 		return _(services)
-			.map(function (service) {
+			.map(async function (service) {
 				const { status, progress, error } = serviceToDataMap[service] ?? {};
 				if (error) {
 					return `${error}`;
 				} else if (progress) {
-					const bar = renderProgressBar(progress, 20);
+					const bar = await renderProgressBar(progress, 20);
 					if (status) {
 						return `${bar} ${status}`;
 					}
@@ -431,11 +445,10 @@ export class BuildProgressUI implements Renderer {
 			.value();
 	}
 
-	_renderStatus(end = false) {
-		const moment = require('moment') as typeof import('moment');
-		(
-			require('moment-duration-format') as typeof import('moment-duration-format')
-		)(moment);
+	async _renderStatus(end = false) {
+		const moment = await import('moment');
+		const momentDurationFormatSetup = await import('moment-duration-format');
+		momentDurationFormatSetup(moment);
 
 		this._tty.clearLine();
 		this._tty.write(this._prefix);
@@ -460,11 +473,11 @@ export class BuildProgressUI implements Renderer {
 		}
 	}
 
-	_renderSummary(serviceToStrMap: Dictionary<string>) {
-		const _ = require('lodash') as typeof import('lodash');
-		const chalk = getChalk();
-		const truncate = require('cli-truncate') as typeof import('cli-truncate');
-		const strlen = require('string-width') as typeof import('string-width');
+	async _renderSummary(serviceToStrMap: Dictionary<string>) {
+		const _ = await import('lodash');
+		const chalk = await getChalk();
+		const truncate = await import('cli-truncate');
+		const strlen = await import('string-width');
 
 		this._services.forEach((service, index) => {
 			let str = _.padEnd(this._prefix + chalk.bold(service), this._prefixWidth);
@@ -489,21 +502,22 @@ export class BuildProgressInline implements Renderer {
 	private _ended;
 
 	constructor(
+		_: typeof import('lodash'),
+		through: typeof import('through2'),
+		chalk: ResolvableReturnType<typeof getChalk>,
 		outStream: NodeJS.ReadWriteStream,
 		descriptors: Array<{ serviceName: string }>,
 	) {
 		this.start = this.start.bind(this);
 		this.end = this.end.bind(this);
 		this._renderEvent = this._renderEvent.bind(this);
-		const _ = require('lodash') as typeof import('lodash');
-		const through = require('through2') as typeof import('through2');
 
 		const services = _.map(descriptors, 'serviceName');
 		const eventHandler = this._renderEvent;
 		const streams = _(services)
 			.map(function (service) {
 				const stream = through.obj(function (event, _enc, cb) {
-					eventHandler(service, event);
+					eventHandler(_, chalk, service, event);
 					return cb();
 				});
 				stream.pipe(outStream, { end: false });
@@ -521,6 +535,16 @@ export class BuildProgressInline implements Renderer {
 		this.streams = streams;
 	}
 
+	public static CreateBuildProgressInline = async (
+		outStream: NodeJS.ReadWriteStream,
+		descriptors: Array<{ serviceName: string }>,
+	) => {
+		const _ = await import('lodash');
+		const through = await import('through2');
+		const chalk = await getChalk();
+		return new BuildProgressInline(_, through, chalk, outStream, descriptors);
+	};
+
 	start() {
 		this._outStream.write('Building services...\n');
 		this._services.forEach((service) => {
@@ -529,11 +553,12 @@ export class BuildProgressInline implements Renderer {
 		this._startTime = Date.now();
 	}
 
-	end(summary?: Dictionary<string>) {
-		const moment = require('moment') as typeof import('moment');
-		(
-			require('moment-duration-format') as typeof import('moment-duration-format')
-		)(moment);
+	async end(summary?: Dictionary<string>) {
+		const _ = await import('lodash');
+		const moment = await import('moment');
+		const chalk = await getChalk();
+		const momentDurationFormatSetup = await import('moment-duration-format');
+		momentDurationFormatSetup(moment);
 
 		if (this._ended) {
 			return;
@@ -541,8 +566,8 @@ export class BuildProgressInline implements Renderer {
 		this._ended = true;
 
 		if (summary != null) {
-			this._services.forEach((service) => {
-				this._renderEvent(service, { status: summary[service] });
+			this._services.forEach(async (service) => {
+				this._renderEvent(_, chalk, service, { status: summary[service] });
 			});
 		}
 
@@ -561,9 +586,12 @@ export class BuildProgressInline implements Renderer {
 		this._outStream.write(`Built ${serviceStr} in ${durationStr}\n`);
 	}
 
-	_renderEvent(service: string, event: { status?: string; error?: Error }) {
-		const _ = require('lodash') as typeof import('lodash');
-
+	_renderEvent(
+		_: typeof import('lodash'),
+		chalk: ResolvableReturnType<typeof getChalk>,
+		service: string,
+		event: { status?: string; error?: Error },
+	) {
 		const str = (function () {
 			const { status, error } = event;
 			if (error) {
@@ -575,7 +603,7 @@ export class BuildProgressInline implements Renderer {
 			}
 		})();
 
-		const prefix = _.padEnd(getChalk().bold(service), this._prefixWidth);
+		const prefix = _.padEnd(chalk.bold(service), this._prefixWidth);
 		this._outStream.write(prefix);
 		this._outStream.write(str);
 		this._outStream.write('\n');

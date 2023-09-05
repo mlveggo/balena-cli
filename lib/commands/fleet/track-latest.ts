@@ -49,7 +49,7 @@ export default class FleetTrackLatestCmd extends Command {
 	public async run() {
 		const { args: params } = await this.parse(FleetTrackLatestCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		await balena.models.application.trackLatestRelease(params.slug);
 	}

@@ -36,7 +36,7 @@ export default class SettingsCmd extends Command {
 	public async run() {
 		await this.parse(SettingsCmd);
 
-		const settings = await getBalenaSdk().settings.getAll();
+		const settings = await (await getBalenaSdk()).settings.getAll();
 
 		const prettyjson = await import('prettyjson');
 		console.log(prettyjson.render(settings));

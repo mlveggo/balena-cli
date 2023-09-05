@@ -18,6 +18,7 @@ import _ = require('lodash');
 import { EOL as eol } from 'os';
 import { StreamLogger } from 'resin-stream-logger';
 import { getChalk } from './lazy';
+import { ResolvableReturnType } from 'balena-sdk/typings/utils';
 
 enum Level {
 	BUILD = 'build',
@@ -67,9 +68,8 @@ class Logger {
 
 	protected adapter: LoggerAdapter;
 
-	protected constructor() {
+	protected constructor(chalk: ResolvableReturnType<typeof getChalk>) {
 		const logger = new StreamLogger();
-		const chalk = getChalk();
 		logger.addPrefix('build', chalk.blue('[Build]'));
 		logger.addPrefix('info', chalk.cyan('[Info]'));
 		logger.addPrefix('debug', chalk.magenta('[Debug]'));
@@ -114,9 +114,9 @@ class Logger {
 	protected static logger: Logger;
 
 	/** Retrieve a global shared instance of this class */
-	public static getLogger() {
+	public static async getLogger() {
 		if (!this.logger) {
-			this.logger = new Logger();
+			this.logger = new Logger(await getChalk());
 		}
 		return this.logger;
 	}

@@ -17,7 +17,7 @@ limitations under the License.
 import isRoot = require('is-root');
 import * as UpdateNotifier from 'update-notifier';
 
-import packageJSON = require('../../package.json');
+import * as packageJSON from '../../package.json';
 
 // Check for an update at most once a day. 1 day granularity should be
 // enough, rather than every run. Note because we show the information
@@ -27,7 +27,7 @@ const balenaUpdateInterval = 1000 * 60 * 60 * 24 * 1;
 
 let notifier: UpdateNotifier.UpdateNotifier;
 
-export function notify() {
+export async function notify() {
 	if (!notifier) {
 		// `update-notifier` creates files to make the next
 		// running time ask for updated, however this can lead
@@ -42,14 +42,16 @@ export function notify() {
 		}
 	}
 	const up = notifier.update;
-	const message = up && getNotifierMessage(up);
+	const message = up && (await getNotifierMessage(up));
 	if (message) {
 		notifier.notify({ defer: false, message });
 	}
 }
 
-export function getNotifierMessage(updateInfo: UpdateNotifier.UpdateInfo) {
-	const semver = require('semver') as typeof import('semver');
+export async function getNotifierMessage(
+	updateInfo: UpdateNotifier.UpdateInfo,
+) {
+	const semver = await import('semver');
 	const message: string[] = [];
 	const [current, latest] = [updateInfo.current, updateInfo.latest];
 

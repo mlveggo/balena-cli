@@ -29,9 +29,9 @@ import { getBalenaSdk, getVisuals, stripIndent, getCliForm } from './lazy';
 import validation = require('./validation');
 import { delay } from './helpers';
 
-export function authenticate(options: {}): Promise<void> {
-	const balena = getBalenaSdk();
-	return getCliForm()
+export async function authenticate(options: object): Promise<void> {
+	const balena = await getBalenaSdk();
+	return (await getCliForm())
 		.run(
 			[
 				{
@@ -50,12 +50,12 @@ export function authenticate(options: {}): Promise<void> {
 		)
 		.then(balena.auth.login)
 		.then(balena.auth.twoFactor.isPassed)
-		.then((isTwoFactorAuthPassed: boolean) => {
+		.then(async (isTwoFactorAuthPassed: boolean) => {
 			if (isTwoFactorAuthPassed) {
 				return;
 			}
 
-			return getCliForm()
+			return (await getCliForm())
 				.ask({
 					message: 'Two factor auth challenge:',
 					name: 'code',
@@ -81,7 +81,7 @@ export function authenticate(options: {}): Promise<void> {
  * Note: `NotLoggedInError` is an `ExpectedError`.
  */
 export async function checkLoggedIn(): Promise<void> {
-	const balena = getBalenaSdk();
+	const balena = await getBalenaSdk();
 	if (!(await balena.auth.isLoggedIn())) {
 		throw new NotLoggedInError(stripIndent`
 		Login required: use the “balena login” command to log in.
@@ -89,41 +89,43 @@ export async function checkLoggedIn(): Promise<void> {
 	}
 }
 
-export function askLoginType() {
-	return getCliForm().ask<'web' | 'credentials' | 'token' | 'register'>({
-		message: 'How would you like to login?',
-		name: 'loginType',
-		type: 'list',
-		choices: [
-			{
-				name: 'Web authorization (recommended)',
-				value: 'web',
-			},
-			{
-				name: 'Credentials',
-				value: 'credentials',
-			},
-			{
-				name: 'Authentication token',
-				value: 'token',
-			},
-			{
-				name: "I don't have a balena account!",
-				value: 'register',
-			},
-		],
-	});
+export async function askLoginType() {
+	return (await getCliForm()).ask<'web' | 'credentials' | 'token' | 'register'>(
+		{
+			message: 'How would you like to login?',
+			name: 'loginType',
+			type: 'list',
+			choices: [
+				{
+					name: 'Web authorization (recommended)',
+					value: 'web',
+				},
+				{
+					name: 'Credentials',
+					value: 'credentials',
+				},
+				{
+					name: 'Authentication token',
+					value: 'token',
+				},
+				{
+					name: "I don't have a balena account!",
+					value: 'register',
+				},
+			],
+		},
+	);
 }
 
 export async function selectDeviceType() {
-	const sdk = getBalenaSdk();
+	const sdk = await getBalenaSdk();
 	let deviceTypes = await sdk.models.deviceType.getAllSupported();
 	if (deviceTypes.length === 0) {
 		// Without this open-balena users would get an empty list
 		// until we add a hostApps import in open-balena.
 		deviceTypes = await sdk.models.deviceType.getAll();
 	}
-	return getCliForm().ask({
+	return (await getCliForm()).ask({
 		message: 'Device Type',
 		type: 'list',
 		choices: deviceTypes.map(({ slug: value, name }) => ({
@@ -153,7 +155,9 @@ export async function confirm(
 		return;
 	}
 
-	const confirmed = await getCliForm().ask<boolean>({
+	const confirmed = await (
+		await getCliForm()
+	).ask<boolean>({
 		message,
 		type: 'confirm',
 		default: defaultValue,
@@ -184,7 +188,7 @@ export async function selectApplication(
 		| ((app: SelectApplicationResult) => boolean),
 	errorOnEmptySelection = false,
 ) {
-	const balena = getBalenaSdk();
+	const balena = await getBalenaSdk();
 	let apps = (await balena.models.application.getAllDirectlyAccessible({
 		...selectApplicationPineOptions,
 		...(filter != null && typeof filter === 'object' && { $filter: filter }),
@@ -201,7 +205,7 @@ export async function selectApplication(
 	if (errorOnEmptySelection && apps.length === 0) {
 		throw new ExpectedError('No suitable fleets found for selection');
 	}
-	return getCliForm().ask({
+	return (await getCliForm()).ask({
 		message: 'Select an application',
 		type: 'list',
 		choices: apps.map((application) => ({
@@ -215,10 +219,12 @@ export async function selectOrganization(
 	organizations?: Array<Pick<Organization, 'handle' | 'name'>>,
 ) {
 	// Use either provided orgs (if e.g. already loaded) or load from cloud
-	organizations ??= await getBalenaSdk().models.organization.getAll({
+	organizations ??= await (
+		await getBalenaSdk()
+	).models.organization.getAll({
 		$select: ['name', 'handle'],
 	});
-	return getCliForm().ask({
+	return (await getCliForm()).ask({
 		message: 'Select an organization',
 		type: 'list',
 		choices: organizations.map((org) => ({
@@ -230,7 +236,7 @@ export async function selectOrganization(
 
 export async function getAndSelectOrganization() {
 	const { getOwnOrganizations } = await import('./sdk');
-	const organizations = await getOwnOrganizations(getBalenaSdk(), {
+	const organizations = await getOwnOrganizations(await getBalenaSdk(), {
 		$select: ['name', 'handle'],
 	});
 
@@ -250,10 +256,10 @@ export async function awaitDeviceOsUpdate(
 	uuid: string,
 	targetOsVersion: string,
 ) {
-	const balena = getBalenaSdk();
+	const balena = await getBalenaSdk();
 
 	const deviceName = await balena.models.device.getName(uuid);
-	const visuals = getVisuals();
+	const visuals = await getVisuals();
 	const progressBar = new visuals.Progress(
 		`Updating the OS of ${deviceName} to v${targetOsVersion}`,
 	);
@@ -304,7 +310,7 @@ export async function getOnlineTargetDeviceUuid(
 	sdk: BalenaSDK,
 	fleetOrDevice: string,
 ) {
-	const logger = (await import('../utils/logger')).getLogger();
+	const logger = await (await import('../utils/logger')).getLogger();
 
 	// If looks like UUID, probably device
 	if (validation.validateUuid(fleetOrDevice)) {
@@ -368,7 +374,7 @@ export async function getOnlineTargetDeviceUuid(
 	}
 
 	// Ask user to select from online devices for fleet
-	return getCliForm().ask({
+	return (await getCliForm()).ask({
 		message: `Select a device on fleet ${application.slug}`,
 		type: 'list',
 		default: devices[0].uuid,
@@ -379,11 +385,11 @@ export async function getOnlineTargetDeviceUuid(
 	});
 }
 
-export function selectFromList<T>(
+export async function selectFromList<T>(
 	message: string,
 	choices: Array<T & { name: string }>,
 ): Promise<T> {
-	return getCliForm().ask<T>({
+	return (await getCliForm()).ask<T>({
 		message,
 		type: 'list',
 		choices: choices.map((s) => ({

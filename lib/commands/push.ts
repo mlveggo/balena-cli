@@ -232,7 +232,7 @@ export default class PushCmd extends Command {
 		const logger = await Command.getLogger();
 		logger.logDebug(`Using build source directory: ${options.source} `);
 
-		const sdk = getBalenaSdk();
+		const sdk = await getBalenaSdk();
 		const { validateProjectDirectory } = await import('../utils/compose_ts');
 		const { dockerfilePath, registrySecrets } = await validateProjectDirectory(
 			sdk,

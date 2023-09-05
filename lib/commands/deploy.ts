@@ -173,7 +173,7 @@ ${dockerignoreHelp}
 			);
 		}
 
-		const sdk = getBalenaSdk();
+		const sdk = await getBalenaSdk();
 		const { getRegistrySecrets, validateProjectDirectory } = await import(
 			'../utils/compose_ts'
 		);
@@ -248,7 +248,7 @@ ${dockerignoreHelp}
 	) {
 		const _ = await import('lodash');
 		const doodles = await import('resin-doodles');
-		const sdk = getBalenaSdk();
+		const sdk = await getBalenaSdk();
 		const { deployProject: $deployProject, loadProject } = await import(
 			'../utils/compose_ts'
 		);
@@ -332,9 +332,8 @@ ${dockerignoreHelp}
 
 			let release: Release | ComposeReleaseInfo['release'];
 			if (appType.slug === 'legacy-v1' || appType.slug === 'legacy-v2') {
-				const { deployLegacy } = require('../utils/deploy-legacy');
-
-				const msg = getChalk().yellow(
+				const { deployLegacy } = await import('../utils/deploy-legacy');
+				const msg = (await getChalk()).yellow(
 					'Target fleet requires legacy deploy method.',
 				);
 				logger.logWarn(msg);

@@ -30,6 +30,6 @@ export default class LogoutCmd extends Command {
 
 	public async run() {
 		await this.parse(LogoutCmd);
-		await getBalenaSdk().auth.logout();
+		await (await getBalenaSdk()).auth.logout();
 	}
 }

@@ -91,7 +91,7 @@ export default class LocalFlashCmd extends Command {
 		});
 		const source = await file.getInnerSource();
 
-		const visuals = getVisuals();
+		const visuals = await getVisuals();
 		const progressBars: { [key: string]: any } = {
 			flashing: new visuals.Progress('Flashing'),
 			verifying: new visuals.Progress('Validating'),
@@ -100,11 +100,11 @@ export default class LocalFlashCmd extends Command {
 		await multiWrite.pipeSourceToDestinations({
 			source,
 			destinations: [drive],
-			onFail: (_, error) => {
-				console.error(getChalk().red.bold(error.message));
+			onFail: async (_, error) => {
+				console.error((await getChalk()).red.bold(error.message));
 				if (error.message.includes('EACCES')) {
 					console.error(
-						getChalk().red.bold(
+						(await getChalk()).red.bold(
 							'Try running this command with elevated privileges, with sudo or in a shell running with admininstrator privileges.',
 						),
 					);
@@ -118,7 +118,8 @@ export default class LocalFlashCmd extends Command {
 	}
 
 	async getDrive(options: { drive?: string }): Promise<BlockDevice> {
-		const drive = options.drive || (await getVisuals().drive('Select a drive'));
+		const drive =
+			options.drive || (await (await getVisuals()).drive('Select a drive'));
 
 		const sdk = await import('etcher-sdk');
 

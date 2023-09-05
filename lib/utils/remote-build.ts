@@ -127,7 +127,7 @@ export async function startRemoteBuild(
 	};
 
 	const { addSIGINTHandler } = await import('./helpers');
-	addSIGINTHandler(sigintHandler);
+	await addSIGINTHandler(sigintHandler);
 
 	try {
 		if (build.opts.headless) {
@@ -137,7 +137,7 @@ export async function startRemoteBuild(
 		}
 	} finally {
 		process.removeListener('SIGINT', sigintHandler);
-		globalLogger.outputDeferredMessages();
+		(await globalLogger).outputDeferredMessages();
 		await cancellationPromise;
 	}
 	return build.releaseId;
@@ -194,7 +194,7 @@ async function handleHeadlessBuildStream(
 
 function handleBuilderMetadata(obj: BuilderMessage, build: RemoteBuild) {
 	switch (obj.resource) {
-		case 'cursor':
+		case 'cursor': {
 			if (obj.value == null) {
 				return;
 			}
@@ -228,6 +228,7 @@ function handleBuilderMetadata(obj: BuilderMessage, build: RemoteBuild) {
 			}
 
 			break;
+		}
 		case 'buildLogId':
 			// The name of this resource is slightly dated, but this is the release
 			// id from the API. We need to save this so that if the user ctrl+c's the
@@ -291,14 +292,14 @@ async function cancelBuildIfNecessary(build: RemoteBuild): Promise<void> {
 async function getTarStream(build: RemoteBuild): Promise<Stream.Readable> {
 	let tarSpinner = {
 		start: () => {
-			/*noop*/
+			/* noop*/
 		},
 		stop: () => {
-			/*noop*/
+			/* noop*/
 		},
 	};
 	if (process.stdout.isTTY) {
-		const visuals = getVisuals();
+		const visuals = await getVisuals();
 		tarSpinner = new visuals.Spinner('Packaging the project source...');
 	}
 
@@ -316,14 +317,14 @@ async function getTarStream(build: RemoteBuild): Promise<Stream.Readable> {
 			Object.keys(build.opts.registrySecrets).length > 0
 				? preFinalizeCallback
 				: undefined;
-		globalLogger.logDebug('Tarring all non-ignored files...');
+		(await globalLogger).logDebug('Tarring all non-ignored files...');
 		const tarStartTime = Date.now();
 		const tarStream = await tarDirectory(path.resolve(build.source), {
 			preFinalizeCallback: preFinalizeCb,
 			convertEol: build.opts.convertEol,
 			multiDockerignore: build.opts.multiDockerignore,
 		});
-		globalLogger.logDebug(
+		(await globalLogger).logDebug(
 			`Tarring complete in ${Date.now() - tarStartTime} ms`,
 		);
 		return tarStream;
@@ -342,13 +343,13 @@ async function getTarStream(build: RemoteBuild): Promise<Stream.Readable> {
  *    event and (2) calling request.pipe():
  *    https://github.com/request/request/issues/887
  */
-function createRemoteBuildRequest(
+async function createRemoteBuildRequest(
 	build: RemoteBuild,
 	tarStream: Stream.Readable,
 	builderUrl: string,
 	onError: (error: Error) => void,
-): request.Request {
-	const zlib = require('zlib') as typeof import('zlib');
+): Promise<request.Request> {
+	const zlib = await import('zlib');
 	if (DEBUG_MODE) {
 		console.error(`[debug] Connecting to builder at ${builderUrl}`);
 	}
@@ -402,7 +403,7 @@ async function getRemoteBuildStream(
 	};
 	// We only show the spinner when outputting to a tty
 	if (process.stdout.isTTY) {
-		const visuals = getVisuals();
+		const visuals = await getVisuals();
 		uploadSpinner = new visuals.Spinner(
 			`Uploading source package to ${new URL(builderUrl).origin}`,
 		);
@@ -410,7 +411,7 @@ async function getRemoteBuildStream(
 	}
 
 	const tarStream = await getTarStream(build);
-	const buildRequest = createRemoteBuildRequest(
+	const buildRequest = await createRemoteBuildRequest(
 		build,
 		tarStream,
 		builderUrl,

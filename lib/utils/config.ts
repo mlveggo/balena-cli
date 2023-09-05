@@ -75,10 +75,9 @@ export async function generateApplicationConfig(
 		appUpdatePollInterval: options.appUpdatePollInterval || 10,
 	};
 
-	const config = (await getBalenaSdk().models.os.getConfig(
-		application.slug,
-		options,
-	)) as ImgConfig;
+	const config = (await (
+		await getBalenaSdk()
+	).models.os.getConfig(application.slug, options)) as ImgConfig;
 
 	// merge sshKeys to config, when they have been specified
 	if (options.os && options.os.sshKeys) {
@@ -98,14 +97,14 @@ export async function generateApplicationConfig(
 	return config;
 }
 
-export function generateDeviceConfig(
+export async function generateDeviceConfig(
 	device: DeviceWithDeviceType & {
 		belongs_to__application: BalenaSdk.PineDeferred;
 	},
 	deviceApiKey: string | true | undefined,
 	options: { version: string },
 ) {
-	const sdk = getBalenaSdk();
+	const sdk = await getBalenaSdk();
 	return sdk.models.application
 		.get(device.belongs_to__application.__id)
 		.then(async (application) => {
@@ -168,7 +167,7 @@ export async function validateDevOptionAndWarn(
 	}
 	if (!logger) {
 		const Logger = await import('./logger');
-		logger = Logger.getLogger();
+		logger = await Logger.getLogger();
 	}
 	logger.logInfo(stripIndent`
 		The '--dev' option is being used to configure a balenaOS image in development mode.
@@ -199,7 +198,7 @@ export async function validateSecureBootOptionAndWarn(
 	if (!slug) {
 		throw new ExpectedError(`Error: No device type provided`);
 	}
-	const sdk = getBalenaSdk();
+	const sdk = await getBalenaSdk();
 	const [osRelease] = await sdk.models.os.getAllOsVersions(slug, {
 		$select: 'contract',
 		$filter: { raw_version: `${version.replace(/^v/, '')}` },
@@ -216,7 +215,7 @@ export async function validateSecureBootOptionAndWarn(
 	) {
 		if (!logger) {
 			const Logger = await import('./logger');
-			logger = Logger.getLogger();
+			logger = await Logger.getLogger();
 		}
 		logger.logInfo(stripIndent`
 			The '--secureBoot' option is being used to configure a balenaOS installer image

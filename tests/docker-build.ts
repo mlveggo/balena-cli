@@ -20,7 +20,7 @@ import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { PathUtils } from '@balena/compose/dist/multibuild';
-import rewire = require('rewire');
+import rewire from 'rewire';
 import * as sinon from 'sinon';
 import { Readable } from 'stream';
 import * as tar from 'tar-stream';
@@ -101,8 +101,7 @@ export async function inspectTarStream(
 	try {
 		expect($expected).to.deep.equal(found);
 	} catch (e) {
-		const { diff } =
-			require('deep-object-diff') as typeof import('deep-object-diff');
+		const { diff } = await import('deep-object-diff');
 		const diffStr = JSON.stringify(
 			diff($expected, found),
 			(_k, v) => (v === undefined ? 'undefined' : v),
@@ -218,7 +217,7 @@ export async function testDockerBuildStream(o: {
 	}
 	if (o.expectedExitCode != null) {
 		if (process.env.BALENA_CLI_TEST_TYPE !== 'standalone') {
-			// @ts-expect-error
+			// @ts-expect-error claims the typing doesn't match
 			sinon.assert.calledWith(process.exit);
 		}
 		expect(o.expectedExitCode).to.equal(exitCode);

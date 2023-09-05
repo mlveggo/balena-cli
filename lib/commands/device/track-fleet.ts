@@ -46,7 +46,7 @@ export default class DeviceTrackFleetCmd extends Command {
 	public async run() {
 		const { args: params } = await this.parse(DeviceTrackFleetCmd);
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 
 		await balena.models.device.trackApplicationRelease(params.uuid);
 	}

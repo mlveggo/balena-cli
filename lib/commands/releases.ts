@@ -59,7 +59,7 @@ export default class ReleasesCmd extends Command {
 			'is_final',
 		];
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 		const { getFleetSlug } = await import('../utils/sdk');
 
 		const releases = await balena.models.release.getAllByApplication(
@@ -69,7 +69,7 @@ export default class ReleasesCmd extends Command {
 
 		const _ = await import('lodash');
 		console.log(
-			getVisuals().table.horizontal(
+			(await getVisuals()).table.horizontal(
 				releases.map((rel) => _.mapValues(rel, (val) => val ?? 'N/a')),
 				fields,
 			),

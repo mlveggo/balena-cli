@@ -52,6 +52,7 @@ export function capitanoizeOclifUsage(
 }
 
 export async function getCommandsFromManifest() {
+	// eslint-disable-next-line @typescript-eslint/no-var-requires
 	const manifest = require('../../oclif.manifest.json');
 
 	if (manifest.commands == null) {

@@ -65,9 +65,9 @@ export default class DevicesSupportedCmd extends Command {
 				},
 			},
 		} satisfies BalenaSdk.PineOptions<BalenaSdk.DeviceType>;
-		const dts = (await getBalenaSdk().models.deviceType.getAllSupported(
-			pineOptions,
-		)) as Array<
+		const dts = (await (
+			await getBalenaSdk()
+		).models.deviceType.getAllSupported(pineOptions)) as Array<
 			BalenaSdk.PineTypedResult<BalenaSdk.DeviceType, typeof pineOptions>
 		>;
 		interface DT {
@@ -92,7 +92,7 @@ export default class DevicesSupportedCmd extends Command {
 		if (options.json) {
 			console.log(JSON.stringify(deviceTypes, null, 4));
 		} else {
-			const visuals = getVisuals();
+			const visuals = await getVisuals();
 			const output = await visuals.table.horizontal(deviceTypes, fields);
 			console.log(output);
 		}

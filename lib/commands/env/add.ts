@@ -126,7 +126,7 @@ export default class EnvAddCmd extends Command {
 			}
 		}
 
-		const balena = getBalenaSdk();
+		const balena = await getBalenaSdk();
 		const reservedPrefixes = await getReservedPrefixes(balena);
 		const isConfigVar = reservedPrefixes.some((prefix) =>
 			params.name.startsWith(prefix),
